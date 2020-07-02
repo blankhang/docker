@@ -1,0 +1,139 @@
+version: '2.2'
+
+services:
+  es01:
+    container_name: es01
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.8.10
+    restart: always
+    # 生产环境建议设置ulimits
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc:
+        soft: 65536
+        hard: 65536
+    environment:
+      - cluster.name=es
+      - node.name=es01
+      - node.master=true
+      - node.data=true
+      - transport.tcp.port=9300
+
+      # 生产环境建议开启
+      - bootstrap.memory_lock=true
+      - bootstrap.system_call_filter=false
+      - discovery.zen.minimum_master_nodes=1
+      - ELASTIC_PASSWORD=$ELASTIC_PASSWORD
+      - 'ES_JAVA_OPTS=-Xms256m -Xmx256m'
+      - xpack.security.enabled=true
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.truststore.type=PKCS12
+      - xpack.security.transport.ssl.keystore.path=$CERTS_DIR/elastic-certificates.p12
+      - xpack.security.transport.ssl.truststore.path=$CERTS_DIR/elastic-certificates.p12
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.keystore.path=$CERTS_DIR/elastic-certificates.p12
+      - xpack.security.http.ssl.truststore.path=$CERTS_DIR/elastic-certificates.p12
+    volumes:
+      - /docker/es/certs:$CERTS_DIR
+      - /docker/es/data/es01:/usr/share/elasticsearch/data
+      - /docker/es/logs/es01:/usr/share/elasticsearch/logs
+    ports:
+      - 9200:9200
+      - 9300:9300
+    healthcheck:
+      test: curl --cacert $CERTS_DIR/ca/ca.crt -s https://localhost:9200 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  es02:
+    container_name: es02
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.8.10
+    restart: always
+    # 生产环境建议设置ulimits
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc:
+        soft: 65536
+        hard: 65536
+    environment:
+      - cluster.name=es
+      - node.name=es02
+      # 生产环境建议开启
+      - bootstrap.memory_lock=true
+      - bootstrap.system_call_filter=false
+      - discovery.zen.minimum_master_nodes=1
+      # elastic用户的密码, 需要在".env"文件中修改
+      - ELASTIC_PASSWORD=$ELASTIC_PASSWORD
+      - discovery.zen.ping.unicast.hosts=es01
+      - 'ES_JAVA_OPTS=-Xms256m -Xmx256m'
+      - xpack.security.enabled=true
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.truststore.type=PKCS12
+      - xpack.security.transport.ssl.keystore.path=$CERTS_DIR/elastic-certificates.p12
+      - xpack.security.transport.ssl.truststore.path=$CERTS_DIR/elastic-certificates.p12
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.keystore.path=$CERTS_DIR/elastic-certificates.p12
+      - xpack.security.http.ssl.truststore.path=$CERTS_DIR/elastic-certificates.p12
+    volumes:
+      - /docker/es/certs:$CERTS_DIR
+      - /docker/es/data/es02:/usr/share/elasticsearch/data
+      - /docker/es/logs/es02:/usr/share/elasticsearch/logs
+
+
+  es03:
+    container_name: es03
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.8.10
+    restart: always
+    # 生产环境建议设置ulimits
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc:
+        soft: 65536
+        hard: 65536
+    environment:
+      - cluster.name=es
+      - node.name=es03
+      # 生产环境建议开启
+      - bootstrap.memory_lock=true
+      - bootstrap.system_call_filter=false
+      - discovery.zen.minimum_master_nodes=1
+      # elastic用户的密码, 需要在".env"文件中修改
+      - ELASTIC_PASSWORD=$ELASTIC_PASSWORD
+      - discovery.zen.ping.unicast.hosts=es01
+      - 'ES_JAVA_OPTS=-Xms256m -Xmx256m'
+      - xpack.security.enabled=true
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.truststore.type=PKCS12
+      - xpack.security.transport.ssl.keystore.path=$CERTS_DIR/elastic-certificates.p12
+      - xpack.security.transport.ssl.truststore.path=$CERTS_DIR/elastic-certificates.p12
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.keystore.path=$CERTS_DIR/elastic-certificates.p12
+      - xpack.security.http.ssl.truststore.path=$CERTS_DIR/elastic-certificates.p12
+    volumes:
+      - /docker/es/certs:$CERTS_DIR
+      - /docker/es/data/es03:/usr/share/elasticsearch/data
+      - /docker/es/logs/es03:/usr/share/elasticsearch/logs
+
+
+  wait_until_ready:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.8.10
+    command: /usr/bin/true
+    depends_on: { 'es01': { 'condition': 'service_healthy' } }
