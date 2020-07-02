@@ -1,0 +1,15 @@
+spring:
+  data:
+    elasticsearch:
+      repositories:
+        enabled: true
+      user: elastic
+      password: plelaseChangeMe
+      cluster-name: es
+      host: YOU_SERVER_IP
+      tcpPort: 9300
+      httpPort: 9200
+      schema: https
+      pckCertificatesPath: elastic-certificates-dev.p12
+      certificatesType: pkcs
+      pkcsClientFilePath: elastic-certificates-dev.p12
