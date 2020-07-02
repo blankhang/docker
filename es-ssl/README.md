@@ -348,9 +348,9 @@ spring:
       tcpPort: 9300
       httpPort: 9200
       schema: https
-      pckCertificatesPath: elastic-certificates-dev.p12
+      pckCertificatesPath: elastic-certificates.p12
       certificatesType: pkcs
-      pkcsClientFilePath: elastic-certificates-dev.p12
+      pkcsClientFilePath: elastic-certificates.p12
 ```
 ### 配置 ElasticSearchProperties.java
 ### Configure ElasticSearchProperties.java
