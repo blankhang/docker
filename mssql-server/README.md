@@ -10,7 +10,7 @@ chmod 755 init.sh start.sh
 sh init.sh
 
 # 在启动 mssql-server [生产环境]前务必修改密码!!!
-
+# /docker/mssql-server/.env 中的 DB_PASSWORD
 # 启动 mssql-server
 sh start.sh
 ```
