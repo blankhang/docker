@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 申请证书 范域名
+# 申请证书 主域名
 docker run --rm  -it  \
   -v "/docker/nginx/ssl":/acme.sh  \
   -e Ali_Key="$$your Ali_Key" \
