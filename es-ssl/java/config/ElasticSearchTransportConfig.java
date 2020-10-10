@@ -1,4 +1,4 @@
-package com.renice.web.config.elasticsearch;
+package com.blankhang.es.config.elasticsearch;
 
 import lombok.extern.slf4j.Slf4j;
 import org.elasticsearch.client.transport.TransportClient;
