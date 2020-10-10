@@ -1,4 +1,4 @@
-# docker mssql-server
+# docker mssql-server 2019
 ```shell script
 # 赋予 init.sh 执行权限
 chmod 755 init.sh
