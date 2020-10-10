@@ -22,7 +22,7 @@ services:
       - "./log:/var/opt/mssql/log"
       - "./secrets:/var/opt/mssql/secrets"
     ports:
-      - 54130:1433
+      - 1433:1433
 
 # docker run
 # -e 'ACCEPT_EULA=Y'

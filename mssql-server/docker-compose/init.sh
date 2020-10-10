@@ -4,6 +4,11 @@
 mkdir  -p /docker/mssql-server/{data,log,secrets}
 chmod 777 /docker/mssql-server/{data,log,secrets}
 
+# create mssql-server's .env file
+# mssql-server password please change it before use on prod env
+cat << 'EOF' > /docker/mssql-server/.env
+DB_PASSWORD=pleaseChangeMe
+EOF
 # create mssql-server's docker-compose file
 cat << 'EOF' > /docker/mssql-server/docker-compose.yml
 
@@ -31,9 +36,13 @@ services:
       - "./log:/var/opt/mssql/log"
       - "./secrets:/var/opt/mssql/secrets"
     ports:
-      - 54130:1433
+      - 1433:1433
 
 EOF
 
-# start mssql-server docker
-docker-compose -c /docker/mssql-server/docker-compose.yml up -d
+echo 'please change /docker/mssql-server/.env'
+echo -e "\033[31m DB_PASSWORD \033[0m"
+
+echo 'before run into prod environment'
+echo 'the default SA_PASSWORD is'
+echo -e "\033[36m pleaseChangeMe \033[0m"
