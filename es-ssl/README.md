@@ -383,11 +383,9 @@ public class ElasticSearchProperties {
     private Map<String, String> properties = new HashMap<>();
 }
 ```
-### 配置 ElasticSearchTransportConfiguration.java
-### Configure ElasticSearchTransportConfiguration.java
+### 配置 ElasticSearchTransportConfig.java
+### Configure ElasticSearchTransportConfig.java
 ```java
-package com.renice.web.config.elasticsearch;
-
 import lombok.extern.slf4j.Slf4j;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.lease.Releasable;

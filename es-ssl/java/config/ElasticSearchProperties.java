@@ -1,4 +1,4 @@
-package com.renice.web.config.elasticsearch;
+package com.blankhang.es.config.elasticsearch;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
