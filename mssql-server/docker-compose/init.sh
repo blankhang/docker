@@ -45,4 +45,4 @@ echo -e "\033[31m DB_PASSWORD \033[0m"
 
 echo 'before run into prod environment'
 echo 'the default SA_PASSWORD is'
-echo -e "\033[36m pleaseChangeMe \033[0m"
+echo -e "\033[36m 9ufs6WpSYhZ*!s6RJBQ3 \033[0m"
