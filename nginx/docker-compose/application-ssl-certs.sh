@@ -18,7 +18,7 @@ docker run --rm  -it  \
   -v "/docker/nginx/ssl":/acme.sh  \
   -e Ali_Key="$$your Ali_Key" \
   -e Ali_Secret="$$your Ali_Secret" \
-  neilpang/acme.sh --issue --log --dns dns_ali -d '$$your domain'
+  neilpang/acme.sh --issue --log --dns dns_ali -d '*.$$your domain'
 
 # 安装证书
 docker run --rm  -it  \
