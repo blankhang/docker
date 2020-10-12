@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # create mysql local data store directory
-mkdir  -p /docker/mysql/{conf,log}
-chmod 755 /docker/mysql/{conf,log}
+mkdir  -p /docker/mysql/{conf,data,log}
+chmod 755 /docker/mysql/{conf,data,log}
 # mysql docker running as polkitd
-chown polkitd /docker/mysql/{conf,log}
+chown polkitd /docker/mysql/{conf,data,log}
 
 # create mysql's configuration file
 cat << 'EOF' > /docker/mysql/conf/my.cnf
