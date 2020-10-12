@@ -7,7 +7,7 @@
 # 赋予 init.sh start.sh 执行权限
 chmod 755 init.sh start.sh
 
-# 运行初始化脚本 即可自动完成 对应文件/目录创建 docker-compose.yml  conf.d log ssl
+# 运行初始化脚本 即可自动完成 对应文件/目录创建 docker-compose.yml  conf data log
 sh init.sh
 
 # 启动 mysql
