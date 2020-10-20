@@ -34,3 +34,12 @@ docker-compose -f /docker/nginx/docker-compose.yml restart
 # 停止 nginx
 docker-compose -f /docker/nginx/docker-compose.yml down
 ```
+
+---
+#### CentOS 7 安装 nginx
+```shell script
+#### 安装 nginx 官方 rpm 源
+rpm -ivh http://nginx.org/packages/centos/7/noarch/RPMS/nginx-release-centos-7-0.el7.ngx.noarch.rpm
+#### 安装 官方 nginx
+yum install  -y nginx
+```
