@@ -1,0 +1,98 @@
+version: "3.7"
+services:
+  rabbit1:
+    image: rabbitmq:3-management
+    hostname: rabbit1
+    healthcheck:
+      test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
+      RABBITMQ_NODENAME: rabbit1
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname==blank
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
+    ports:
+      - "4369:4369"
+      - "5671:5671"
+      - "5672:5672"
+      - "15671:15671"
+      - "15672:15672"
+      - "25672:25672"
+    configs:
+      - source: rabbitmq_conf
+        target: /etc/rabbitmq/rabbitmq.conf
+    networks:
+      - rabbitmq-cluster
+
+  rabbit2:
+    image: rabbitmq:3-management
+    hostname: rabbit2
+    healthcheck:
+      test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
+      RABBITMQ_NODENAME: rabbit2
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname==yf
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
+    # command:
+    #   - /bin/sh
+    #   - -c
+    #   - |
+    #     sleep 30
+    #     /opt/rabbitmq/sbin/rabbitmqctl stop_app
+    #     /opt/rabbitmq/sbin/rabbitmqctl reset
+    #     /opt/rabbitmq/sbin/rabbitmqctl join_cluster rabbit1@rabbit1
+    #     /opt/rabbitmq/sbin/rabbitmqctl start_app
+    #
+    configs:
+      - source: rabbitmq_conf
+        target: /etc/rabbitmq/rabbitmq.conf
+    networks:
+      - rabbitmq-cluster
+
+  rabbit3:
+    image: rabbitmq:3-management
+    hostname: rabbit3
+    healthcheck:
+      test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
+      RABBITMQ_NODENAME: rabbit3
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname==xzq
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
+    configs:
+      - source: rabbitmq_conf
+        target: /etc/rabbitmq/rabbitmq.conf
+    networks:
+      - rabbitmq-cluster
+
+configs:
+  rabbitmq_conf:
+    file: ./rabbitmq.conf
+
+networks:
+  rabbitmq-cluster:
+    driver: overlay

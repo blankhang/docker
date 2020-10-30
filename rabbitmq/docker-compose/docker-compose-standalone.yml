@@ -1,0 +1,25 @@
+version: "3.7"
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    hostname: rabbitmq
+    container_name: rabbitmq
+    restart: always
+    healthcheck:
+      test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=Passw0rd
+      - RABBITMQ_ERLANG_COOKIE="MY-SECRET-KEY-123"
+    ports:
+    - 15672:15672
+    networks:
+      - test
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
+networks:
+  test:

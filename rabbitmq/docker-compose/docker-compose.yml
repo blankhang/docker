@@ -1,0 +1,92 @@
+version: "3.7"
+services:
+  rabbit1:
+    image: rabbitmq:3-management
+    hostname: rabbit1
+    healthcheck:
+      test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
+      RABBITMQ_NODENAME: rabbit1
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
+      - /docker/rabbitmq/conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+    ports:
+      - "5671:5671"
+      - "5672:5672"
+      - "15671:15671"
+      - "15672:15672"
+      - "25672:25672"
+    networks:
+      - rabbitmq-cluster
+
+  rabbit2:
+    image: rabbitmq:3-management
+    hostname: rabbit2
+    healthcheck:
+      test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
+      RABBITMQ_NODENAME: rabbit2
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
+      - /docker/rabbitmq/conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+    networks:
+      - rabbitmq-cluster
+
+  rabbit3:
+    image: rabbitmq:3-management
+    hostname: rabbit3
+    healthcheck:
+      test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
+      RABBITMQ_NODENAME: rabbit3
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
+      - /docker/rabbitmq/conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+    networks:
+      - rabbitmq-cluster
+
+  haproxy:
+    image: haproxy
+    hostname: haproxy
+    healthcheck:
+      test: curl -s https://localhost:35673 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 1m
+      restart_policy:
+        condition: on-failure
+    environment:
+      TZ: "Asia/Shanghai"
+    ports:
+      - 35671:35671 # RabbitMQ load balance AMQP port
+      - 35672:35672 # RabbitMQ management ui http port
+      - 35673:35673 # haproyx stats http port
+    volumes:
+      - /docker/rabbitmq/conf/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    networks:
+      - rabbitmq-cluster
+    depends_on:
+      - rabbit1
+      - rabbit2
+      - rabbit3
+
+networks:
+  rabbitmq-cluster:
+#    driver: overlay
