@@ -1382,7 +1382,6 @@ EOF
 
 # create redis's docker-compose file
 cat << 'EOF' > /docker/redis/docker-compose.yml
-
 version: '3.7'
 
 services:
@@ -1392,9 +1391,14 @@ services:
     restart: always
     container_name: redis
     hostname: redis
+    healthcheck:
+      test: curl -s https://localhost:59394 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 5s
+      timeout: 10s
+      retries: 3
     volumes:
       - '/docker/redis/conf/redis.conf:/usr/local/etc/redis/redis.conf'
-      - '/docker/redis/data:/data'
+      - 'redis_data:/data'
     command: redis-server /usr/local/etc/redis/redis.conf
     ports:
       - "59394:59394"
@@ -1415,7 +1419,6 @@ services:
 
 # redis default conf
 # #http://download.redis.io/redis-stable/redis.conf
-
 EOF
 
 echo -e "\033[36m init success \033[0m"
