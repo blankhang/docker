@@ -1,0 +1,20 @@
+version: '3.7'
+
+services:
+  gogs:
+    image: gogs/gogs
+    container_name: gogs
+    restart: always
+    #privileged: true
+    healthcheck:
+      test: curl -s https://localhost:3000 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    environment:
+      TZ: "Asia/Shanghai"
+    volumes:
+      - "/docker/gogs/data:/data"
+      - "/docker/gogs/log:/var/log/gogs"
+    ports:
+      - 3000:3000
