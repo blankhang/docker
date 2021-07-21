@@ -10,9 +10,11 @@ RUN apt-get update && apt-get install -y maven nodejs \
     && locale-gen \
     && rm -rf /var/lib/apt/lists/*
 
-# Setting Default Chinese Language
-ENV LANG: "zh_CN:UTF-8"
-ENV LANGUAGE: "zh_CN:zh"
-ENV LC_ALL: "zh_CN:UTF-8"
+# Setting Default Chinese Language and UTC+8 timezone
+#ENV LANG C.UTF-8
+ENV LANG zh_CN.UTF-8
+ENV LANGUAGE zh_CN.UTF-8
+ENV LC_ALL zh_CN.UTF-8
+ENV TZ Asia/Shanghai
 
 user jenkins
