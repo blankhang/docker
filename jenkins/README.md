@@ -6,7 +6,7 @@
 # 赋予 init.sh start.sh 执行权限
 chmod 755 init.sh start.sh
 
-# 运行初始化脚本 即可自动完成 对应文件/目录创建 docker-compose.yml jenkins_home
+# 运行初始化脚本 即可自动完成 对应文件/目录创建 docker-compose.yml Dockerfile jenkins_home
 sh init.sh
 
 # 启动 jenkins
@@ -19,6 +19,22 @@ docker-compose -f /docker/jenkins/docker-compose.yml restart
 
 # 停止 jenkins
 docker-compose -f /docker/jenkins/docker-compose.yml down
+```
+
+
+#### 推荐安装插件
+- Docker
+- Docker Compose Build Step Plugin
+- Docker Pipeline
+- SSH Pipeline Steps
+- Maven Integration plugin
+- Pipeline Maven Integration Plugin
+- Git plugin
+
+
+#### 替换官方更新源为国内地址 加快插件下载速度 每次在插件管事中点击了立即获取后 都需要重新替换一次
+```shell
+sed -i 's/http:\/\/updates.jenkins-ci.org\/download/https:\/\/mirrors.tuna.tsinghua.edu.cn\/jenkins/g' /docker/jenkins/jenkins_home/updates/default.json && sed -i 's/http:\/\/www.google.com/https:\/\/www.baidu.com/g' /docker/jenkins/jenkins_home/updates/default.json
 ```
 
 ---
