@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="false">
+    <!--引用默认日志配置-->
+    <!--<include resource="org/springframework/boot/logging/logback/defaults.xml"/>-->
+    <!--使用默认的控制台日志输出实现-->
+    <!--<include resource="org/springframework/boot/logging/logback/console-appender.xml"/>-->
+    <!--当前环境变量 DEV/TEST/PROD-->
+    <springProperty name="PROFILE" scope="context" source="spring.profiles.active" defaultValue="dev"/>
+    <!--应用名称-->
+    <springProperty name="APP_NAME" scope="context"  source="spring.application.name" defaultValue="springBoot"/>
+    <!--日志文件保存路径-->
+    <springProperty name="LOG_FILE_PATH" scope="context" source="logging.file.path"/>
+    <!--redis-->
+    <springProperty name="REDIS_HOST" scope="context" source="spring.redis.host"/>
+    <springProperty name="REDIS_PORT" scope="context" source="spring.redis.port"/>
+    <springProperty name="REDIS_PASSWORD" scope="context" source="spring.redis.password"/>
+    <springProperty name="REDIS_DATABASE" scope="context" source="spring.redis.database"/>
+
+    <!--控制台输出-->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <!--使用该标签下的标签指定日志输出格式-->
+        <!--输出DEBUG以上级别日志-->
+        <!--<filter class="ch.qos.logback.classic.filter.ThresholdFilter">-->
+        <!--    <level>INFO</level>-->
+        <!--</filter>-->
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--
+            %p:输出优先级，即DEBUG,INFO,WARN,ERROR,FATAL
+            %r:输出自应用启动到输出该日志讯息所耗费的毫秒数
+            %t:输出产生该日志事件的线程名
+            %f:输出日志讯息所属的类别的类别名
+            %c:输出日志讯息所属的类的全名
+            %d:输出日志时间点的日期或时间，指定格式的方式： %d{yyyy-MM-dd HH:mm:ss}
+            %l:输出日志事件的发生位置，即输出日志讯息的语句在他所在类别的第几行。
+            %m:输出代码中指定的讯息，如log(message)中的message
+            %n:输出一个换行符号
+            -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %yellow(%5p) %magenta(${PID:- }) %highlight([%t]) %cyan([%C]) %green([%L]) %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--DEBUG日志输出到文件-->
+    <appender name="FILE_DEBUG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--输出DEBUG以上级别日志-->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <encoder>
+            <!--设置为默认的文件日志格式-->
+            <!--<pattern>${FILE_LOG_PATTERN}</pattern>-->
+            <pattern>%-5p [%d{yyyy-MM-dd' 'HH:mm:ss.SSS}][%C] [%t] [%L] %m%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!--设置文件命名格式-->
+            <fileNamePattern>${LOG_FILE_PATH}/debug/${APP_NAME}-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+            <!--设置日志文件大小，超过就重新生成文件，默认10M-->
+            <maxFileSize>${LOG_FILE_MAX_SIZE:-10MB}</maxFileSize>
+            <!--日志文件保留天数，默认30天-->
+            <maxHistory>${LOG_FILE_MAX_HISTORY:-30}</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!--ERROR日志输出到文件-->
+    <appender name="FILE_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--只输出ERROR级别的日志-->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder>
+            <!--设置为默认的文件日志格式-->
+            <!--<pattern>${FILE_LOG_PATTERN}</pattern>-->
+            <pattern>%-5p [%d{yyyy-MM-dd' 'HH:mm:ss.SSS}][%C] [%t] [%L] %m%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!--设置文件命名格式-->
+            <fileNamePattern>${LOG_FILE_PATH}/error/${APP_NAME}-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+            <!--设置日志文件大小，超过就重新生成文件，默认10M-->
+            <maxFileSize>${LOG_FILE_MAX_SIZE:-10MB}</maxFileSize>
+            <!--日志文件保留天数，默认30天-->
+            <maxHistory>${LOG_FILE_MAX_HISTORY:-30}</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!--将系统日志记录发送到REDIS 然后由logstash读取保存到es最后供kibana ui浏览器中查看-->
+    <appender name="LOGSTASH_REDIS" class="com.cwbase.logback.RedisAppender">
+        <host>${REDIS_HOST}</host>
+        <port>${REDIS_PORT}</port>
+        <password>${REDIS_PASSWORD}</password>
+        <database>${REDIS_DATABASE}</database>
+        <key>logstash</key>
+        <!--以上配置要保证跟logstash连接redis的配置相同-->
+
+        <tags>${PROFILE}</tags>
+        <!--<sourceHost>localhost</sourceHost>-->
+        <!--<source>sp-project-dev</source>-->
+        <!--<sourcePath>sp-project-dev</sourcePath>-->
+        <!--<type>service</type>-->
+        <!-- Use your own Custom Layout here -->
+        <!--<layout class="com.cwbase.logback.JSONEventLayout">-->
+        <!-- JSONEventLayout Attributes Here -->
+        <!--</layout>-->
+        <additionalField>
+            <key>appName</key>
+            <value>${APP_NAME}-${PROFILE}</value>
+        </additionalField>
+    </appender>
+
+
+    <!--控制框架输出日志 无效?-->
+    <!--<logger name="org.slf4j" level="DEBUG"/>-->
+    <!--<logger name="springfox" level="INFO"/>-->
+    <!--<logger name="io.swagger" level="INFO"/>-->
+    <!--<logger name="org.springframework" level="INFO"/>-->
+    <!--<logger name="org.hibernate.validator" level="INFO"/>-->
+
+    <!--使用异步保证队列超过80%时也不丢失日志 -->
+    <appender name="LOG_STASH_ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="LOGSTASH_REDIS" />
+    </appender>
+
+    <root level="DEBUG">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE_DEBUG"/>
+        <appender-ref ref="FILE_ERROR"/>
+        <!--<appender-ref ref="LOGSTASH_REDIS"/>-->
+        <appender-ref ref="LOG_STASH_ASYNC"/>
+    </root>
+</configuration>
