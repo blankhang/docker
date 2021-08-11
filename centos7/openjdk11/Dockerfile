@@ -10,5 +10,5 @@ echo "Asia/Shanghai" > /etc/timezone && \
 echo "export LANG=zh_CN.UTF-8" >> /etc/locale.conf
 
 ENV TZ Asia/Shanghai
-ENV LANG=zh_CN.UTF-8
-ENV LC_ALL=zh_CN.UTF-8
+ENV LANG zh_CN.UTF-8
+ENV LC_ALL zh_CN.UTF-8
