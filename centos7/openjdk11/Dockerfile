@@ -7,7 +7,7 @@ yum clean all && \
 rm -rf /var/cache/yum/* && \
 localedef -c -f UTF-8 -i zh_CN zh_CN.utf8 && \
 echo "Asia/Shanghai" > /etc/timezone && \
-echo "export LANG=zh_CN.UTF-8" >> /etc/locale.conf
+echo "LANG=zh_CN.UTF-8" >> /etc/locale.conf
 
 ENV TZ Asia/Shanghai
 ENV LANG zh_CN.UTF-8
