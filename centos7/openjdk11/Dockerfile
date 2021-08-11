@@ -10,11 +10,11 @@ fc-cache -fv && \
 localedef -c -f UTF-8 -i zh_CN zh_CN.utf8 && \
 cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
 echo "Asia/Shanghai" > /etc/timezone && \
+echo "export LANG=zh_CN.UTF-8" >> /etc/locale.conf && \
 yum install -y java-11-openjdk && \
 yum clean all && \
 rm -rf /var/cache/yum/*
 
 ENV TZ Asia/Shanghai
 ENV LANG=zh_CN.UTF-8
-ENV LANGUAGE=zh_CN:zh
 ENV LC_ALL=zh_CN.UTF-8
