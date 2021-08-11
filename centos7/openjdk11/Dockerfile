@@ -3,7 +3,6 @@ MAINTAINER blankhang <blankhang@gmail.com>
 LABEL version='1.0' description='centos7 with chinese lanugage and openjdk11 and CST GMT+8 timezone support'
 
 RUN yum install -y libXmu freetype kde-l10n-Chinese mkfontscale fontconfig && \
-yum -y reinstall glibc-common && \
 yum groupinstall "fonts" -y && \
 mkfontscale && \
 fc-cache -fv && \
