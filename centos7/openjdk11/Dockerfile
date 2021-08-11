@@ -1,18 +1,13 @@
 FROM centos:7
 MAINTAINER blankhang <blankhang@gmail.com>
-LABEL version='1.0' description='centos7 with chinese lanugage and openjdk11 and CST GMT+8 timezone support'
+LABEL version='2.0' description='centos7 with chinese lanugage and openjdk11 and CST GMT+8 timezone support'
 
-RUN yum install -y libXmu freetype kde-l10n-Chinese mkfontscale fontconfig && \
-yum groupinstall "fonts" -y && \
-mkfontscale && \
-fc-cache -fv && \
-localedef -c -f UTF-8 -i zh_CN zh_CN.utf8 && \
-cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-echo "Asia/Shanghai" > /etc/timezone && \
-echo "export LANG=zh_CN.UTF-8" >> /etc/locale.conf && \
-yum install -y java-11-openjdk && \
+RUN yum install -y kde-l10n-Chinese glibc-common java-11-openjdk && \
 yum clean all && \
-rm -rf /var/cache/yum/*
+rm -rf /var/cache/yum/* && \
+localedef -c -f UTF-8 -i zh_CN zh_CN.utf8 && \
+echo "Asia/Shanghai" > /etc/timezone && \
+echo "export LANG=zh_CN.UTF-8" >> /etc/locale.conf
 
 ENV TZ Asia/Shanghai
 ENV LANG=zh_CN.UTF-8
