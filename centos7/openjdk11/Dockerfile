@@ -1,6 +1,6 @@
 FROM centos:7
 MAINTAINER blankhang <blankhang@gmail.com>
-LABEL version='2.0' description='centos7 with chinese lanugage and openjdk11 and CST GMT+8 timezone support'
+LABEL version='1.0' description='centos7 with chinese lanugage and openjdk11 and CST GMT+8 timezone support'
 
 RUN yum install -y kde-l10n-Chinese glibc-common java-11-openjdk && \
 yum clean all && \
