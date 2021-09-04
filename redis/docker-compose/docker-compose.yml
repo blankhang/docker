@@ -3,7 +3,7 @@ version: '3.7'
 services:
 
   redis:
-    image: redis:5
+    image: redis:6
     restart: always
     container_name: redis
     hostname: redis
@@ -14,7 +14,7 @@ services:
       retries: 3
     volumes:
       - '/docker/redis/conf/redis.conf:/usr/local/etc/redis/redis.conf'
-      - 'redis_data:/data'
+#      - 'redis_data:/data'
     command: redis-server /usr/local/etc/redis/redis.conf
     ports:
       - "59394:59394"
