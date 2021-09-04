@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # create mysql local data store directory
-mkdir  -p /docker/mysql/{conf,data,log}
-chmod 755 /docker/mysql/{conf,data,log}
-# mysql docker running as polkitd
-chown polkitd /docker/mysql/{conf,data,log}
+mkdir  -p /docker/mysql/{conf.d,data,log}
+
+# mysql docker running as 999
+chown 999:999 /docker/mysql/{conf.d,data,log}
 
 # create mysql's configuration file
-cat << 'EOF' > /docker/mysql/conf/my.cnf
+cat << 'EOF' > /docker/mysql/conf.d/my.cnf
 [mysqldump]
 quick
 quote-names
@@ -120,31 +120,29 @@ services:
     image: mysql:8
     hostname: mysql
     restart: always
-    container_name: mysql8
+    container_name: mysql
+    user: "999:999"
+    command: --default-authentication-plugin=mysql_native_password
     healthcheck:
-      test: "mysqladmin ping -h localhost -P 3306 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD"
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 15s
+      retries: 10
       interval: 5s
-      timeout: 10s
-      retries: 3
       start_period: 10s
     environment:
       TZ: Asia/Shanghai
-      #MYSQL_ALLOW_EMPTY_PASSWORD: 'Y'
-      MYSQL_ROOT_PASSWORD: "bXnT5oJp79*nRoYfSYYo"
-      MYSQL_DATABASE: "test"
-      MYSQL_USER: "blankhang"
-      MYSQL_PASSWORD: "6T5zXnFF&92W!9599#L4"
+      MYSQL_ROOT_PASSWORD: "123456"
+      #MYSQL_DATABASE: "test"
+      #MYSQL_USER: "blank"
+      #MYSQL_PASSWORD: "123456"
     volumes:
-      - ./conf/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./conf.d:/etc/mysql/conf.d
       - ./data:/var/lib/mysql
       - ./log:/var/log/mysql
       # init sql
       #- ./mysql/sql/master:/docker-entrypoint-initdb.d
     ports:
-      - 3306:3306
-    command:
-      --default-authentication-plugin=mysql_native_password
-
+      - "3306:3306"
 EOF
 
 echo -e "\033[36m init success \033[0m"

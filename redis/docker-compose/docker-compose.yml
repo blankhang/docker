@@ -5,30 +5,19 @@ services:
   redis:
     image: redis:6
     restart: always
-    container_name: redis
+    container_name: redis6
     hostname: redis
     healthcheck:
-      test: curl -s https://localhost:59394 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      test: curl -s https://localhost:6379 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
       interval: 5s
       timeout: 10s
       retries: 3
     volumes:
       - '/docker/redis/conf/redis.conf:/usr/local/etc/redis/redis.conf'
 #      - 'redis_data:/data'
-    command: redis-server /usr/local/etc/redis/redis.conf
+#    command: redis-server /usr/local/etc/redis/redis.conf
     ports:
-      - "59394:59394"
-
-#  redis-commander:
-#    image: rediscommander/redis-commander:latest
-#    container_name: redis-commander
-#    environment:
-#     - REDIS_HOST=redis
-#     - REDIS_PORT=59394
-#     - REDIS_PASSWORD=123456
-#    ports:
-#    - "59395:8081"
-
+      - "6379:6379"
 
 #volumes:
 #  redis_data:

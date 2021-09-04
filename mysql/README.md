@@ -15,7 +15,6 @@ sh start.sh
 # 或
 docker-compose -f /docker/mysql/docker-compose.yml up -d
 
-# 修改配置文件[/docker/mysql/conf/my.cnf]后
 # 重新启动 mysql
 docker-compose -f /docker/mysql/docker-compose.yml restart
 
