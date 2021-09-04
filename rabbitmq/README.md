@@ -1,4 +1,4 @@
-# docker redis
+# docker rabbitmq
 
 ### 所有文件将会创建到 /docker/rabbitmq 目录中
 请参考 docker-compose 目录 与 stack 目录中 README.md  

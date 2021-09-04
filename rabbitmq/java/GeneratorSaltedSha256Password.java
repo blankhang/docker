@@ -1,4 +1,4 @@
-package com.storlead.sc.erp.util;
+package com.blankhang.util;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
