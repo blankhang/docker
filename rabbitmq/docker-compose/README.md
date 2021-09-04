@@ -19,7 +19,6 @@ sh start.sh
 # 或
 docker-compose -f /docker/rabbitmq/docker-compose.yml up -d
 
-# 修改配置文件后
 # 重启
 docker-compose -f /docker/rabbitmq/docker-compose.yml restart
 

@@ -15,11 +15,7 @@ services:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=Passw0rd
       - RABBITMQ_ERLANG_COOKIE="MY-SECRET-KEY-123"
-    ports:
-    - 15672:15672
-    networks:
-      - test
     volumes:
-      - /docker/rabbitmq/data:/var/lib/rabbitmq
-networks:
-  test:
+        - /docker/rabbitmq/data:/var/lib/rabbitmq
+    ports:
+      - "15672:15672"
