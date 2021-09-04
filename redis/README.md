@@ -16,6 +16,7 @@ sh start.sh
 # 或
 docker-compose -f /docker/redis/docker-compose.yml up -d
 
+# 修改配置文件后
 # 重启 redis
 docker-compose -f /docker/redis/docker-compose.yml restart
 
