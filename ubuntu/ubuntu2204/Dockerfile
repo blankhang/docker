@@ -22,7 +22,3 @@ RUN apt-get -qq update \
 
 RUN locale-gen zh_CN.UTF-8
 ENV LANG='zh_CN.UTF-8' LANGUAGE='zh_CN:zh:en_US:en' LC_ALL='zh_CN.UTF-8'
-
-# Not sure why this is done, must dig in more later.
-RUN rm -f /etc/ssl/certs/java/cacerts; \
-  /var/lib/dpkg/info/ca-certificates-java.postinst configure
