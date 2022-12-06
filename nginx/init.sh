@@ -126,10 +126,10 @@ services:
       - TZ=Asia/Shanghai
     volumes:
       - /app:/app
-      - /docker/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - /docker/nginx/conf.d:/etc/nginx/conf.d
-      - /docker/nginx/ssl:/etc/nginx/ssl
-      - /docker/nginx/log:/var/log/nginx
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./conf.d:/etc/nginx/conf.d
+      - ./ssl:/etc/nginx/ssl
+      - ./log:/var/log/nginx
     ports:
       - "80:80"
       - "443:443"

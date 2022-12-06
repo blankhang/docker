@@ -14,6 +14,6 @@ services:
       - portainer_data:/data
     environment:
       - TZ=Asia/Shanghai
-      - admin-password=12345678
+      - admin-password=63032569
 volumes:
   portainer_data:
