@@ -4,7 +4,7 @@
 # 需要先在不同的架构平台打包好需要整合的镜像
 # 如下命令 将 AMD64 和 ARM64V8 架构的 镜像命名空间的包 整合到 
 # blankhang/ubuntu2204:openjdk17
-# docker会自动根据当前运行的平台拉取对应的镜像
+# docker会自动根据当前运行的架构拉取对应的镜像
 # AMD架构 执行 docker pull blankhang/ubuntu2204:openjdk17 ----> blankhang/ubuntu2204:openjdk17-amd64
 # ARM64V8架构 执行 docker pull blankhang/ubuntu2204:openjdk17 ----> blankhang/ubuntu2204:openjdk17-arm64v8
 
