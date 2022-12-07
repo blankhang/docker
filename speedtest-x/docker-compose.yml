@@ -9,4 +9,4 @@ services:
       - MAX_LOG_COUNT=100
       - SAME_IP_MULTI_LOGS=TRUE
     ports:
-      - 9001:80
+      - "9001:80"
