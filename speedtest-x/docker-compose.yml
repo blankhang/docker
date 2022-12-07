@@ -5,7 +5,7 @@ services:
     image: badapple9/speedtest-x
     container_name: speedtest-x
     environment:
-      - TZ=${TZ}
+      - TZ=Asia/Shanghai
       - MAX_LOG_COUNT=100
       - SAME_IP_MULTI_LOGS=TRUE
     ports:
