@@ -5,14 +5,32 @@ docker and docker-compose and docker swarm project
 ---
 
 ## 安装 docker
+### Linux
+Docker 的 安装资源文件 存放在Amazon S3，会间歇性连接失败。所以[在中国大陆地区]安装Docker的时候，会比较慢。  
+你可以通过执行下面的命令，高速安装Docker。
 ```shell
-#在 Linux上 安装 Docker
-#Docker 的 安装资源文件 存放在Amazon S3，会间歇性连接失败。所以[在中国大陆地区]安装Docker的时候，会比较慢。
-#你可以通过执行下面的命令，高速安装Docker。
 curl -sSL https://get.daocloud.io/docker | sh
 ```
----
 
+### macOS
+Docker安装包下载后直接安装
+#### amd64
+https://desktop.docker.com/mac/main/amd64/Docker.dmg?utm_source=docker&utm_medium=webreferral&utm_campaign=docs-driven-download-mac-amd64
+#### arm64
+https://desktop.docker.com/mac/main/arm64/Docker.dmg?utm_source=docker&utm_medium=webreferral&utm_campaign=docs-driven-download-mac-arm64
+
+see also  
+https://docs.docker.com/desktop/install/mac-install/
+
+### Windows 
+amd64
+Docker安装包下载后直接安装  
+https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe
+
+see also  
+https://docs.docker.com/desktop/install/windows-install/
+
+---
 ## 配置镜像加速
 ### Linux
 #该脚本可以将 --registry-mirror 加入到你的 Docker 配置文件 /etc/docker/daemon.json 中。适用于 Ubuntu14.04、Debian、CentOS6 、CentOS7、Fedora、Arch Linux、openSUSE Leap 42.1，其他版本可能有细微不同。更多详情请访问文档。
