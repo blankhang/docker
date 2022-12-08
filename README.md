@@ -40,17 +40,14 @@ curl -sSL https://get.daocloud.io/daotools/set_mirror.sh | sh -s http://f1361db2
 ### macOS
 Docker Desktop For Mac
 
-右键点击桌面顶栏的 docker 图标，选择 Preferences ，在 Daemon 标签（Docker 17.03 之前版本为 Advanced 标签）下的 Registry mirrors 列表中加入下面的镜像地址:
+右键点击桌面顶栏的 docker 图标，选择 Preferences ，修改在 Docker Engine 标签页中的 json ，在 Registry mirrors 列表中加入下面的镜像地址:
 http://f1361db2.m.daocloud.io
 点击 Apply & Restart 按钮使设置生效。
-
-Docker Toolbox 等配置方法请参考帮助文档。
 
 ### Windows
 Docker Desktop For Windows
 
-在桌面右下角状态栏中右键 docker 图标，选择 Settings ，修改在 Docker Engine 标签页中的 json ，
-在 Registry mirrors 列表中加入下面的镜像地址:  
+在桌面右下角状态栏中右键 docker 图标，选择 Settings ，修改在 Docker Engine 标签页中的 json ， 在 Registry mirrors 列表中加入下面的镜像地址:  
 http://f1361db2.m.daocloud.io
 点击 Apply & Restart 按钮使设置生效。  
 完整的json配置文件看起来像这样
@@ -70,7 +67,4 @@ http://f1361db2.m.daocloud.io
     "buildkit": true
   }
 }
-```
-
-Docker Toolbox 等配置方法请参考帮助文档。
 ```
