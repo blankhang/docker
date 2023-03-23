@@ -1,16 +1,11 @@
-version: '3.7'
-
+version: "3.8"
 services:
-  sshwifty:
-    image: niruix/sshwifty
-    container_name: sshwifty
+  frp:
+    image: zhangsean/frp
+    container_name: frps
     restart: always
-    ports:
-      - "8182:8182"
-
-  next-terminal:
-    image: dushixiang/next-terminal
-    container_name: next-terminal
-    restart: always
-    ports:
-      - "8184:8088"
+    network_mode: host
+    environment:
+      - SERVER=1
+    volumes:
+      - ./frps.ini:/opt/frp/frps.ini
