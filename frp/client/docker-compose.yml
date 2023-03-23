@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  frp:
+    image: quackerd/frp
+    container_name: frpc
+    restart: always
+    network_mode: host
+    volumes:
+      - ./frpc.ini:/opt/frp/frpc.ini

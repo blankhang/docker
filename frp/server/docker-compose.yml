@@ -1,0 +1,16 @@
+version: '3.7'
+
+services:
+  sshwifty:
+    image: niruix/sshwifty
+    container_name: sshwifty
+    restart: always
+    ports:
+      - "8182:8182"
+
+  next-terminal:
+    image: dushixiang/next-terminal
+    container_name: next-terminal
+    restart: always
+    ports:
+      - "8184:8088"
