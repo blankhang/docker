@@ -21,4 +21,10 @@ docker-compose -f /docker/mysql/docker-compose.yml restart
 
 # 停止 mysql
 docker-compose -f /docker/mysql/docker-compose.yml down
+
+# 导出dump数据到 host主机的 /docker/mysql/all-databases.sql
+docker exec mysql8 sh -c 'exec mysqldump --all-databases -uroot -p"bXnT5oJp79*nRoYfSYYo"' > /docker/mysql/all-databases.sql
+
+# 恢复dump数据到 mysql 容器
+docker exec -i mysql8 sh -c 'exec mysql -uroot -p"bXnT5oJp79*nRoYfSYYo"' < /docker/mysql/all-databases.sql
 ```
