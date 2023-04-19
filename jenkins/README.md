@@ -65,3 +65,14 @@ firewall-cmd --reload
 # 启动 | 停止 | 重启 | 查看状态 jenkins
 systemctl start | stop | restart | status jenkins
 ```
+
+```shell
+# 推荐插件
+Git Parameter
+Docker
+Docker Pipeline
+Publish Over SSH
+SSH Pipeline Steps
+Pipeline Maven Integration Plugin
+Pipeline Utility Steps
+```

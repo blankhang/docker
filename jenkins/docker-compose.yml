@@ -1,37 +1,30 @@
-version: '3.7'
+version: '3.9'
 
 services:
   jenkins:
-    build:
-      dockerfile: Dockerfile
-      context: docker-compose
-    #image: jenkins/jenkins:jdk11
+    # build:
+    #  dockerfile: Dockerfile
+    #  context: .
+    image: blankhang/jenkins:lts
     container_name: jenkins
     restart: always
     privileged: true
     user: root
+
     healthcheck:
       test: curl -s https://localhost:8080 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
       interval: 1m
       timeout: 5s
       retries: 3
-#    environment:
-      #LANG: "zh_CN.UTF-8"
-      #LANGUAGE: "zh_CN.UTF-8"
-      #LC_ALL: "zh_CN.UTF-8"
-      #TZ: "Asia/Shanghai"
+
     ports:
       - '8080:8080'
     networks:
       - default
     volumes:
       - '/app:/app'
-      - '/usr/share/fonts:/usr/share/fonts'
       - '/docker/jenkins/jenkins_home:/var/jenkins_home'
       - '/etc/localtime:/etc/localtime:ro'
       - '/var/run/docker.sock:/var/run/docker.sock'
-      - '/usr/lib/x86_64-linux-gnu/libltdl.so.7:/usr/lib/x86_64-linux-gnu/libltdl.so.7'
       - '~/.ssh:/var/jenkins_home/.ssh'
       - '~/.m2:/root/.m2'
-networks:
-  default:
