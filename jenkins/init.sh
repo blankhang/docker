@@ -7,13 +7,14 @@ chmod 755 /docker/jenkins/jenkins_home
 # create jenkins's Dockerfile file
 cat << 'EOF' > /docker/jenkins/Dockerfile
 # https://github.com/jenkinsci/docker/blob/master/README.md
-FROM jenkins/jenkins:jdk11
+# FROM jenkins/jenkins:jdk11
+FROM jenkins/jenkins:lts-jdk11
 MAINTAINER blankhang@gmil.com
 
 user root
 
 # update system and install chinese language support
-RUN apt-get update && apt-get install -y maven nodejs \
+RUN apt-get update && apt-get install -y locales locales-all maven nodejs \
     && sed -i '/^#.* zh_CN.UTF-8 /s/^#//' /etc/locale.gen \
     && locale-gen \
     && rm -rf /var/lib/apt/lists/*
@@ -69,6 +70,17 @@ services:
 networks:
   default:
 EOF
+
+# create start.sh file
+cat << 'EOF' > /docker/jenkins/start.sh
+#!/bin/bash
+
+# start jenkins
+docker-compose -f /docker/jenkins/docker-compose.yml up -d
+EOF
+
+#set the start.sh file permission so it can run without issue
+chmod 755 /docker/jenkins/start.sh
 
 #build jenkins docker image
 docker-compose build
