@@ -1,6 +1,6 @@
 FROM blankhang/ubuntu2204
 MAINTAINER blankhang <blankhang@gmail.com>
-LABEL version='1.0' description='ubuntu22.04 with openjdk18 and chinese lanugage and CST GMT+8 timezone support'
+LABEL version='1.0' description='ubuntu22.04 with openjdk8 and chinese lanugage and CST GMT+8 timezone support'
 
 # All of the necessary packages required apparently. Might want to confirm
 # which are actually needed.
