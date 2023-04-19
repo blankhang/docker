@@ -27,4 +27,5 @@ services:
     ports:
       - 3306:3306
     command:
-      --default-authentication-plugin=mysql_native_password
+      --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    entrypoint: bash -c "chown -R mysql:mysql /var/log/mysql && exec /entrypoint.sh mysqld"

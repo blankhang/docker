@@ -130,10 +130,10 @@ services:
     environment:
       TZ: Asia/Shanghai
       #MYSQL_ALLOW_EMPTY_PASSWORD: 'Y'
-      MYSQL_ROOT_PASSWORD: "bXnT5oJp79*nRoYfSYYo"
+      MYSQL_ROOT_PASSWORD: "df1sm3l8*nRoYfSYYo"
       MYSQL_DATABASE: "test"
-      MYSQL_USER: "blankhang"
-      MYSQL_PASSWORD: "6T5zXnFF&92W!9599#L4"
+      MYSQL_USER: "blank"
+      MYSQL_PASSWORD: "6Tsdfm32#@pewe#L4"
     volumes:
       - ./conf/my.cnf:/etc/mysql/conf.d/my.cnf
       - ./data:/var/lib/mysql
@@ -143,9 +143,21 @@ services:
     ports:
       - 3306:3306
     command:
-      --default-authentication-plugin=mysql_native_password
-
+      --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    entrypoint: bash -c "chown -R mysql:mysql /var/log/mysql && exec /entrypoint.sh mysqld"
 EOF
+
+# create start.sh file
+cat << 'EOF' > /docker/mysql/start.sh
+#!/bin/bash
+
+# start mysql
+docker-compose -f /docker/mysql/docker-compose.yml up -d
+EOF
+
+#set the files permission so it can run without issue
+chown -R root:root /docker/mysql/
+chmod 755 /docker/mysql/start.sh
 
 echo -e "\033[36m init success \033[0m"
 echo "now you can run start.sh to start mysql"
