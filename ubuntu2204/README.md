@@ -1,5 +1,6 @@
 ## arm64/amd64 arch ubuntu 2204 image with chinese font support and GMT+8 TZ and openjdk 8 11 17
-## 支持 arm64 amd64 架构的 ubuntu 2204 底包镜像 和带有 openjdk 8 11 17的镜像
+## 支持 arm64 amd64 架构的 ubuntu 2204  带中文字体 GMT+8时区的底包镜像 和带有 openjdk 8 11 17的镜像
+source code at https://github.com/blankhang/docker/tree/master/ubuntu2204
 ### how to use 使用方法
 ```shell
 # ubuntu2204 最新底包
