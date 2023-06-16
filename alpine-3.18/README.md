@@ -3,8 +3,8 @@
 ```shell script
 docker pull blankhnag/alpine-3.18
 ```
-## arm64/amd64 arch centos7 image with chinese font support and GMT+8 TZ and openjdk 8 11 17
-## 支持 arm64 amd64 架构的 centos7 带中文字体 GMT+8时区的底包镜像 和带有 openjdk 8 11 17的镜像
+## amd64 arch centos7 image with chinese font support and GMT+8 TZ and openjdk 8 11 17
+## 支持 amd64 架构的 centos7 带中文字体 GMT+8时区的底包镜像 和带有 openjdk 8 11 17的镜像
 
 source code at https://github.com/blankhang/docker/tree/master/alpine-3.18
 ### how to use 使用方法
