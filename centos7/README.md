@@ -1,7 +1,10 @@
 ## arm64/amd64 arch centos7 image with chinese font support and GMT+8 TZ and openjdk 8 11 17
 ## 支持 arm64 amd64 架构的 centos7 带中文字体 GMT+8时区的底包镜像 和带有 openjdk 8 11 17的镜像
+
+强烈建议 更换到基于`ubuntu2204`的底包 来使用 https://hub.docker.com/repository/docker/blankhang/ubuntu2204/general
+
 source code at https://github.com/blankhang/docker/tree/master/centos7
-### how to use 使用方法 
+### how to use 使用方法
 ```shell
 # centos7 底包镜像
 docker pull blankhnag/centos7
