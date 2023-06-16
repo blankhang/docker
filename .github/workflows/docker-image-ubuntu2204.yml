@@ -3,7 +3,7 @@ on:
   workflow_dispatch: #github页面手动触发
   push:
     tags:
-      - "v*.*"
+      - "v*.*" # github 发布tag时触发自动构建
 # on:
 #   push:
 #     branches: [ "master" ]
@@ -14,22 +14,6 @@ env:
   IMAGE_NAME: blankhang/ubuntu2204-test #这是您的镜像名
   
 jobs:
-  get-tags:
-    runs-on: ubuntu-latest
-    env:
-      TZ: Asia/Shanghai
-    outputs:
-      tags: ${{ steps.output-id.outputs.v }}
-    steps:
-      - uses: actions/checkout@v3
-      - id: output-id
-        run: |
-          VERSION=edge
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/v}
-          fi
-          echo "v=${VERSION}" >> $GITHUB_OUTPUT
-
 
   build:
     runs-on: ubuntu-latest
@@ -50,6 +34,14 @@ jobs:
       with:
         context: .
         file: ./ubuntu2204/Dockerfile
-        platforms: linux/amd64
+        platforms: |
+          linux/386
+          linux/amd64
+          linux/arm/v5
+          linux/arm/v7
+          linux/arm64
+          linux/mips64le
+          linux/ppc64le
+          linux/s390x
         push: true
         tags: ${{ env.IMAGE_NAME }}:latest
