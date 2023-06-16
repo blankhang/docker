@@ -52,4 +52,4 @@ jobs:
         file: ./ubuntu2204/Dockerfile
         platforms: linux/amd64
         push: true
-        tags: ${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+        tags: ${{ env.IMAGE_NAME }}:latest
