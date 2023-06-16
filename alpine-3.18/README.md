@@ -9,7 +9,7 @@ docker pull blankhnag/alpine-3.18
 source code at https://github.com/blankhang/docker/tree/master/alpine-3.18
 ### how to use 使用方法
 ```shell
-# alpine3.17 底包
+# alpine3.18 底包
 docker pull blankhnag/alpine-3.18
 
 # centos7 + openjdk17
