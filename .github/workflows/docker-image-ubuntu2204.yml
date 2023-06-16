@@ -1,4 +1,4 @@
-name: Docker Image Ubuntu2204  CI
+name: Docker Image Ubuntu2204 amd64  CI
 on:
   workflow_dispatch: #github页面手动触发
   push:
@@ -50,6 +50,6 @@ jobs:
       with:
         context: .
         file: ./ubuntu2204/Dockerfile
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
         push: true
         tags: ${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
