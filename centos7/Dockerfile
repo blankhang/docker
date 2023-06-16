@@ -16,6 +16,7 @@ RUN yum install -y epel-release && \
     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone && \
     yum clean all && \
+    rm -rf msttcore-fonts-installer-2.6-1.noarch.rpm && \
     rm -rf /var/cache/yum/*
 
 ENV TZ Asia/Shanghai
