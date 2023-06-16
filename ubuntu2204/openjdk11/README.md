@@ -8,9 +8,9 @@
 # AMD架构 执行 docker pull blankhang/ubuntu2204:openjdk17 ----> blankhang/ubuntu2204:openjdk17-amd64
 # ARM64V8架构 执行 docker pull blankhang/ubuntu2204:openjdk17 ----> blankhang/ubuntu2204:openjdk17-arm64v8
 
-docker manifest create blankhang/ubuntu2204 \
-blankhang/ubuntu2204amd64 \
-blankhang/ubuntu2204arm64v8
+docker manifest create blankhang/ubuntu2204:openjdk11 \
+blankhang/ubuntu2204:openjdk11-amd64 \
+blankhang/ubuntu2204:openjdk11-arm64v8
 
-docker manifest push blankhang/ubuntu2204
+docker manifest push blankhang/ubuntu2204:openjdk11
 ```
