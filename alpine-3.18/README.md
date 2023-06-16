@@ -1,4 +1,4 @@
-#### alpine-3.12 with glibc-2.35-r1 and GMT+8 timezone
+#### alpine-3.18 with glibc-2.35-r1 and GMT+8 timezone
 
 ```shell script
 docker pull blankhnag/alpine-3.18

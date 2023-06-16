@@ -1,4 +1,4 @@
-FROM blankhang/alpine-3.17:openjdk11 as packager
+FROM blankhang/alpine-3.18:openjdk11 as packager
 
 ##jlink
 RUN /usr/lib/jvm/java-11-openjdk/bin/jlink \
@@ -10,7 +10,7 @@ RUN /usr/lib/jvm/java-11-openjdk/bin/jlink \
 	--output /usr/lib/jvm/java-11-openjdk-jlinked
 
 # copy jdk after jlink
-FROM blankhang/alpine-3.17:glibc-2.32-r0
+FROM blankhang/alpine-3.18:glibc-2.35-r1-amd64
 MAINTAINER blankhang <blankhang@gmail.com>
 COPY --from=packager /usr/lib/jvm/java-11-openjdk-jlinked /usr/lib/jvm/java-11-openjdk
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk
