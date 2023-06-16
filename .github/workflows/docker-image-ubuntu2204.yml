@@ -51,3 +51,6 @@ jobs:
         cache-to: type=gha,mode=max
         push: true
         tags: ${{ env.IMAGE_NAME }}:latest
+
+    - name: Image digest
+      run: echo ${{ steps.docker_build.outputs.digest }}
