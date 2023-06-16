@@ -11,7 +11,7 @@ on:
 #     branches: [ "master" ]
 
 env:
-  IMAGE_NAME: blankhang/ubuntu2204-test #这是您的镜像名
+  IMAGE_NAME: blankhang/ubuntu2204 #这是您的镜像名
   
 jobs:
 
