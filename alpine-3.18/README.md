@@ -18,6 +18,9 @@ docker pull blankhang/alpine-3.18:openjdk17
 # centos7 + openjdk11
 docker pull blankhang/alpine-3.18:openjdk11
 
+# centos7 + openjdk11-link
+docker pull blankhang/alpine-3.18:openjdk11-link
+
 # centos7 + openjdk8 强烈建议升级到 17 或 11 8 太旧了
 docker pull blankhang/alpine-3.18:openjdk8
 ```
