@@ -1,3 +1,16 @@
+### 使用方法
+```shell
+# ubuntu2204 最新底包
+docker pull blankhang/ubuntu2204
+# ubuntu 2204 + openjdk17
+docker pull blankhang/ubuntu2204:openjdk17
+# ubuntu 2204 + openjdk11
+docker pull blankhang/ubuntu2204:openjdk11
+# ubuntu 2204 + openjdk8 强烈建议升级到 17 或 11 8 太旧了
+docker pull blankhang/ubuntu2204:openjdk8
+```
+
+
 ### 构建不同架构的包 合成到指定镜像的命名空间中
 这样不同的架构的docker都可以使用同一个镜像名
 ```shell
