@@ -100,4 +100,4 @@ configs:
 
 networks:
   rabbitmq-cluster:
-    driver: overlay
+    driver: bridge
