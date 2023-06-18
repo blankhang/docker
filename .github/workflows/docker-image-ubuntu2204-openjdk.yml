@@ -12,8 +12,10 @@ on:
 
 env:
   IMAGE: ubuntu2204
-  IMAGE_NAME: blankhang/ubuntu2204 #这是您的镜像名
-  
+  IMAGE_NAME_OPENJDK8: blankhang/ubuntu2204:openjdk8 #这是您的镜像名
+  IMAGE_NAME_OPENJDK11: blankhang/ubuntu2204:openjdk11 #这是您的镜像名
+  IMAGE_NAME_OPENJDK17: blankhang/ubuntu2204:openjdk17 #这是您的镜像名
+
 jobs:
 
   build:
@@ -52,7 +54,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         push: true
-        tags: ${{ env.IMAGE_NAME }}:latest
+        tags: ${{ env.IMAGE_NAME_OPENJDK8 }}:latest
 
     - name: Build openjdk11 and push
       id: openjdk11_build
@@ -66,7 +68,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         push: true
-        tags: ${{ env.IMAGE_NAME }}:latest
+        tags: ${{ env.IMAGE_NAME_OPENJDK11 }}:latest
 
     - name: Build openjdk17 and push
       id: openjdk17_build
@@ -80,7 +82,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         push: true
-        tags: ${{ env.IMAGE_NAME }}:latest
+        tags: ${{ env.IMAGE_NAME_OPENJDK17 }}:latest
 
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
