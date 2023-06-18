@@ -47,7 +47,7 @@ jobs:
         builder: ${{ steps.buildx.outputs.name }}
         context: ./${{ env.IMAGE }}/build
         file: ./${{ env.IMAGE }}/build/Dockerfile
-        platforms: linux/amd64,linux/arm/v7,linux/arm64
+        platforms: linux/amd64,linux/arm64
         #,linux/ppc64le,linux/s390x
         cache-from: type=gha
         cache-to: type=gha,mode=max
