@@ -1,4 +1,4 @@
-FROM redis:6.2
+FROM redis:7
 
 MAINTAINER blankhang@gmail.com
 
