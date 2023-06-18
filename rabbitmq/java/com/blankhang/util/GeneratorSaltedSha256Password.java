@@ -9,8 +9,8 @@ import java.util.Base64;
 
 /**
  * 将给定密码 编码成 rabbitmq 要求的 sha256 加盐
- *
- *
+ * <p>
+ * <p>
  * https://www.rabbitmq.com/passwords.html#computing-password-hash
  * https://stackoverflow.com/questions/41306350/how-to-generate-password-hash-for-rabbitmq-management-http-api
  *
@@ -22,14 +22,14 @@ public class GeneratorSaltedSha256Password {
     /**
      * Generates a salted SHA-256 hash of a given password.
      */
-    public static String getPasswordHash(String password) {
+    public static String getPasswordHash (String password) {
         byte[] salt = getSalt();
         try {
-            var saltedPassword = concatenateByteArray(salt, password.getBytes(StandardCharsets.UTF_8));
+            byte[] saltedPassword = concatenateByteArray(salt, password.getBytes(StandardCharsets.UTF_8));
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(saltedPassword);
 
-            return Base64.getEncoder().encodeToString(concatenateByteArray(salt,hash));
+            return Base64.getEncoder().encodeToString(concatenateByteArray(salt, hash));
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
@@ -39,7 +39,7 @@ public class GeneratorSaltedSha256Password {
     /**
      * Generates a 32 bit random salt.
      */
-    private static byte[] getSalt() {
+    private static byte[] getSalt () {
         byte[] ba = new byte[4];
         new SecureRandom().nextBytes(ba);
         return ba;
@@ -48,7 +48,7 @@ public class GeneratorSaltedSha256Password {
     /**
      * Concatenates two byte arrays.
      */
-    private static byte[] concatenateByteArray(byte[] a, byte[] b) {
+    private static byte[] concatenateByteArray (byte[] a, byte[] b) {
         int lenA = a.length;
         int lenB = b.length;
         byte[] c = Arrays.copyOf(a, lenA + lenB);
@@ -57,8 +57,9 @@ public class GeneratorSaltedSha256Password {
     }
 
 
-    public static void main(String args[])
-    {
+    public static void main (String args[]) {
+        // 修改你的rabbitmq密码
+        // please change your rabbitmq password here
         System.out.println(getPasswordHash("you-rabbitmq-passwd"));
     }
 }
