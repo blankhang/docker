@@ -1,7 +1,7 @@
-version: "3.7"
+version: "3.9"
 services:
   rabbit1:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.12-management
     hostname: rabbit1
     healthcheck:
       test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
@@ -19,12 +19,8 @@ services:
     volumes:
       - /docker/rabbitmq/data:/var/lib/rabbitmq
     ports:
-      - "4369:4369"
-      - "5671:5671"
       - "5672:5672"
-      - "15671:15671"
       - "15672:15672"
-      - "25672:25672"
     configs:
       - source: rabbitmq_conf
         target: /etc/rabbitmq/rabbitmq.conf
@@ -32,7 +28,7 @@ services:
       - rabbitmq-cluster
 
   rabbit2:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.12-management
     hostname: rabbit2
     healthcheck:
       test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
@@ -66,7 +62,7 @@ services:
       - rabbitmq-cluster
 
   rabbit3:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.12-management
     hostname: rabbit3
     healthcheck:
       test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi

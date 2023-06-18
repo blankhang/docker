@@ -11,13 +11,23 @@ services:
     environment:
       RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
       RABBITMQ_NODENAME: rabbit1
-    configs:
-      - source: rabbitmq_conf
-        target: /etc/rabbitmq/rabbitmq.conf
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname==blank
     volumes:
       - /docker/rabbitmq/data:/var/lib/rabbitmq
     ports:
+      - "4369:4369"
+      - "5671:5671"
+      - "5672:5672"
+      - "15671:15671"
       - "15672:15672"
+      - "25672:25672"
+    configs:
+      - source: rabbitmq_conf
+        target: /etc/rabbitmq/rabbitmq.conf
     networks:
       - rabbitmq-cluster
 
@@ -32,11 +42,26 @@ services:
     environment:
       RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
       RABBITMQ_NODENAME: rabbit2
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname==yf
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
+    # command:
+    #   - /bin/sh
+    #   - -c
+    #   - |
+    #     sleep 30
+    #     /opt/rabbitmq/sbin/rabbitmqctl stop_app
+    #     /opt/rabbitmq/sbin/rabbitmqctl reset
+    #     /opt/rabbitmq/sbin/rabbitmqctl join_cluster rabbit1@rabbit1
+    #     /opt/rabbitmq/sbin/rabbitmqctl start_app
+    #
     configs:
       - source: rabbitmq_conf
         target: /etc/rabbitmq/rabbitmq.conf
-    volumes:
-      - /docker/rabbitmq/data:/var/lib/rabbitmq
     networks:
       - rabbitmq-cluster
 
@@ -51,22 +76,23 @@ services:
     environment:
       RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
       RABBITMQ_NODENAME: rabbit3
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname==xzq
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
     configs:
       - source: rabbitmq_conf
         target: /etc/rabbitmq/rabbitmq.conf
-    volumes:
-      - /docker/rabbitmq/data:/var/lib/rabbitmq
     networks:
       - rabbitmq-cluster
+
 
   haproxy:
     image: haproxy
     hostname: haproxy
-    healthcheck:
-      test: curl -s https://localhost:35673 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
-      interval: 5s
-      timeout: 10s
-      retries: 3
     deploy:
       replicas: 1
       update_config:
@@ -77,9 +103,9 @@ services:
     environment:
       TZ: "Asia/Shanghai"
     ports:
-      - "35671:35671" # RabbitMQ load balance AMQP port
-      - "35672:35672" # RabbitMQ management ui http port
-      - "35673:35673" # haproyx stats http port
+      - 35671:35671 # RabbitMQ load balance AMQP port
+      - 35672:35672 # RabbitMQ management ui http port
+      - 35673:35673 # haproyx stats http port
     configs:
       - source: haproxy_cfg
         target: /usr/local/etc/haproxy/haproxy.cfg
@@ -96,7 +122,6 @@ configs:
     file: ./conf/rabbitmq.conf
   haproxy_cfg:
     file: ./conf/haproxy.cfg
-
 
 networks:
   rabbitmq-cluster:

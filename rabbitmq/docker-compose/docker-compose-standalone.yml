@@ -1,7 +1,7 @@
-version: "3.7"
+version: "3.9"
 services:
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.12-management
     hostname: rabbitmq
     container_name: rabbitmq
     restart: always
@@ -12,10 +12,12 @@ services:
       retries: 3
       start_period: 10s
     environment:
+      #- default user/pwd is guest/quest
       - RABBITMQ_DEFAULT_USER=admin
-      - RABBITMQ_DEFAULT_PASS=Passw0rd
+      - RABBITMQ_DEFAULT_PASS=admin
       - RABBITMQ_ERLANG_COOKIE="MY-SECRET-KEY-123"
     volumes:
         - /docker/rabbitmq/data:/var/lib/rabbitmq
     ports:
       - "15672:15672"
+      - "5672:5672"

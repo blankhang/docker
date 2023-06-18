@@ -1,4 +1,5 @@
-FROM rabbitmq:3.9-management
+# https://hub.docker.com/_/rabbitmq
+FROM rabbitmq:3.12-management
 
 MAINTAINER blankhang@gmail.com
 
@@ -13,12 +14,15 @@ RUN apt install -y curl tzdata \
     && dpkg-reconfigure --frontend noninteractive tzdata \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -L https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases/download/3.9.0/rabbitmq_delayed_message_exchange-3.9.0.ez > $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-3.9.0.ez
+RUN curl -L https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases/download/v3.12.0/rabbitmq_delayed_message_exchange-3.12.0.ez > $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-3.12.0.ez
 
-RUN chown rabbitmq:rabbitmq $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-3.9.0.ez
+RUN chown rabbitmq:rabbitmq $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-3.12.0.ez
 
 RUN rabbitmq-plugins enable --offline rabbitmq_delayed_message_exchange
 
 RUN rabbitmq-plugins enable --offline rabbitmq_consistent_hash_exchange
 
-ADD config/* /etc/rabbitmq
+#/etc/rabbitmq/enabled_plugins
+ADD config/enabled_plugins /etc/rabbitmq/enabled_plugins
+
+ADD config/rabbitmq.conf /etc/rabbitmq/conf.d/mq.conf

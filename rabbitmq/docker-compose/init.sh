@@ -99,10 +99,10 @@ EOF
 echo -e "\033[36m creating rabbitmq docker-compose.yml \033[0m"
 # create rabbitmq docker-compose.yml
 cat << 'EOF' > /docker/rabbitmq/docker-compose.yml
-version: "3.7"
+version: "3.9"
 services:
   rabbit1:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.12-management
     hostname: rabbit1
     healthcheck:
       test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
@@ -125,7 +125,7 @@ services:
       - rabbitmq-cluster
 
   rabbit2:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.12-management
     hostname: rabbit2
     healthcheck:
       test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
@@ -142,7 +142,7 @@ services:
       - rabbitmq-cluster
 
   rabbit3:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.12-management
     hostname: rabbit3
     healthcheck:
       test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
