@@ -11,7 +11,8 @@ on:
 #     branches: [ "master" ]
 
 env:
-  IMAGE_NAME: blankhang/centos7 #这是您的镜像名
+  IMAGE: ubuntu2204
+  IMAGE_NAME: blankhang/ubuntu2204 #这是您的镜像名
   
 jobs:
 
@@ -44,8 +45,8 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         builder: ${{ steps.buildx.outputs.name }}
-        context: ./centos7
-        file: ./centos7/Dockerfile
+        context: ./${{ env.IMAGE }}
+        file: ./${{ env.IMAGE }}/Dockerfile
         platforms: linux/amd64,linux/arm/v7,linux/arm64
         #,linux/ppc64le,linux/s390x
         cache-from: type=gha
