@@ -4,7 +4,7 @@ LABEL version='1.0' description='centos7 with chinese lanugage and openjdk17 and
 
 ARG TARGETARCH
 
-RUN yum install -y kde-l10n-Chinese glibc-common && \
+RUN yum install -y kde-l10n-Chinese glibc-common \
     &&  case ${TARGETARCH} in \
             "amd64")  OS_ARCH=x64  ;; \
             "arm64")  OS_ARCH=aarch64  ;; \
