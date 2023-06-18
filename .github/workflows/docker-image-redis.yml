@@ -12,7 +12,7 @@ on:
 
 env:
   IMAGE: redis # 镜像
-  IMAGE_NAME: blankhang/${{ env.IMAGE }} #这是您的镜像名
+  IMAGE_NAME: blankhang/redis #这是您的镜像名
   
 jobs:
 
