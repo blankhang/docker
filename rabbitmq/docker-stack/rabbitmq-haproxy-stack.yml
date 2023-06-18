@@ -15,7 +15,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - 'node.hostname == vm-ubuntu-11'
+          - 'node.hostname == vm-ubuntu-12'
     volumes:
       - /docker/rabbitmq/data:/var/lib/rabbitmq
     ports:
@@ -42,7 +42,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - 'node.hostname == vm-ubuntu-12'
+          - 'node.hostname == vm-ubuntu-13'
     volumes:
       - /docker/rabbitmq/data:/var/lib/rabbitmq
     # command:
@@ -76,7 +76,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - 'node.hostname == vm-ubuntu-13'
+          - 'node.hostname == vm-ubuntu-14'
     volumes:
       - /docker/rabbitmq/data:/var/lib/rabbitmq
     configs:
