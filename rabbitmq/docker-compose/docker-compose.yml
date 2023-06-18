@@ -19,7 +19,7 @@ services:
     ports:
       - "15672:15672"
     networks:
-      - rabbitmq-cluster
+      - rabbitmq-compose
 
   rabbit2:
     image: rabbitmq:3.12-management
@@ -38,7 +38,7 @@ services:
     volumes:
       - /docker/rabbitmq/data:/var/lib/rabbitmq
     networks:
-      - rabbitmq-cluster
+      - rabbitmq-compose
 
   rabbit3:
     image: rabbitmq:3.12-management
@@ -57,10 +57,10 @@ services:
     volumes:
       - /docker/rabbitmq/data:/var/lib/rabbitmq
     networks:
-      - rabbitmq-cluster
+      - rabbitmq-compose
 
   haproxy:
-    image: haproxy
+    image: haproxy:2.8-alpine
     hostname: haproxy
     healthcheck:
       test: curl -s https://localhost:35673 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
@@ -79,12 +79,12 @@ services:
     ports:
       - "35671:35671" # RabbitMQ load balance AMQP port
       - "35672:35672" # RabbitMQ management ui http port
-      - "35673:35673" # haproyx stats http port
+      - "35673:35673" # HAProxy stats http port
     configs:
       - source: haproxy_cfg
         target: /usr/local/etc/haproxy/haproxy.cfg
     networks:
-      - rabbitmq-cluster
+      - rabbitmq-compose
     depends_on:
       - rabbit1
       - rabbit2
@@ -99,5 +99,5 @@ configs:
 
 
 networks:
-  rabbitmq-cluster:
+  rabbitmq-compose:
     driver: bridge

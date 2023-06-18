@@ -103,9 +103,9 @@ services:
     environment:
       TZ: "Asia/Shanghai"
     ports:
-      - 35671:35671 # RabbitMQ load balance AMQP port
-      - 35672:35672 # RabbitMQ management ui http port
-      - 35673:35673 # haproyx stats http port
+      - "35671:35671" # RabbitMQ load balance AMQP port
+      - "35672:35672" # RabbitMQ management ui http port
+      - "35673:35673" # HAProxy stats http port
     configs:
       - source: haproxy_cfg
         target: /usr/local/etc/haproxy/haproxy.cfg

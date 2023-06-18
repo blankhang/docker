@@ -10,5 +10,5 @@ java / bash 为 旧配置sha256 的 密码加密
 ```yaml
 spring.rabbitmq.addresses=node1:5672,node2:5672,node3:5672
 spring.rabbitmq.username=blankhang
-spring.rabbitmq.password=kbfJ4o8%cGmnrVw**Wtk
+spring.rabbitmq.password=blankhang
 ```

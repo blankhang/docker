@@ -25,6 +25,9 @@ docker-compose -f /docker/rabbitmq/docker-compose.yml restart
 # 停止
 docker-compose -f /docker/rabbitmq/docker-compose.yml down
 ```
+
+
+
 ---
 RabbitMQ 是一款开源的消息代理软件，它使用 AMQP（高级消息队列协议）来传输和存储消息。RabbitMQ 提供了一个可靠、灵活和可扩展的平台，用于构建分布式应用程序和微服务架构。
 
