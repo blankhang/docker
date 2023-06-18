@@ -54,7 +54,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         push: true
-        tags: ${{ env.IMAGE_NAME_OPENJDK8 }}:latest
+        tags: ${{ env.IMAGE_NAME_OPENJDK8 }}
 
     - name: Build openjdk11 and push
       id: openjdk11_build
@@ -68,7 +68,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         push: true
-        tags: ${{ env.IMAGE_NAME_OPENJDK11 }}:latest
+        tags: ${{ env.IMAGE_NAME_OPENJDK11 }}
 
     - name: Build openjdk17 and push
       id: openjdk17_build
@@ -82,7 +82,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         push: true
-        tags: ${{ env.IMAGE_NAME_OPENJDK17 }}:latest
+        tags: ${{ env.IMAGE_NAME_OPENJDK17 }}
 
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
