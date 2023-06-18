@@ -24,7 +24,7 @@ docker-compose -f /docker/redis/docker-compose.yml restart
 docker-compose -f /docker/redis/docker-compose.yml down
 ```
 ---
-#### 开启 aof 方法 [开启后会严重降低 redis 效率]
+#### 开启 aof 方法 [开启后会降低 redis 效率]
 ```shell script
 redis.conf
 appendonly no -> appendonly yes 

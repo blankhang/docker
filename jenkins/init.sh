@@ -9,7 +9,7 @@ cat << 'EOF' > /docker/jenkins/Dockerfile
 # https://github.com/jenkinsci/docker/blob/master/README.md
 # FROM jenkins/jenkins:jdk11
 FROM jenkins/jenkins:lts-jdk11
-MAINTAINER blankhang@gmil.com
+MAINTAINER blankhang@gmail.com
 
 user root
 

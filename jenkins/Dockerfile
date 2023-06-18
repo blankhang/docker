@@ -1,6 +1,6 @@
 # https://github.com/jenkinsci/docker/blob/master/README.md
 FROM jenkins/jenkins:lts
-MAINTAINER blankhang@gmil.com
+MAINTAINER blankhang@gmail.com
 
 USER root
 
