@@ -1,0 +1,180 @@
+version: '3.9'
+
+x-logging:
+  &default-logging
+  driver: "json-file"
+  options:
+    max-size: "1m"
+    max-file: "1"
+    tag: "{{.Name}}"
+
+services:
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    deploy:
+      mode: global
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      # https://github.com/google/cadvisor/issues/1565#issuecomment-718812180
+      - /var/run/docker.sock:/var/run/docker.sock
+      #- /dev/disk:/dev/disk:ro
+    ports:
+      - 8080:8080
+    networks:
+      - monitoring
+    logging: *default-logging
+
+  node-exporter:
+    image: prom/node-exporter
+    container_name: node-exporter
+    restart: unless-stopped
+    deploy:
+      mode: global
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points'
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+    ports:
+      - 9100:9100
+    networks:
+      - monitoring
+    logging: *default-logging
+
+  mysql-exporter:
+    image: prom/mysqld-exporter
+    container_name: mysql-exporter
+    restart: unless-stopped
+    deploy:
+      placement:
+        constraints:
+          - 'node.hostname == vm-ubuntu-11'
+    environment:
+      - DATA_SOURCE_NAME="root:bXnT5oJp79*nRoYfSYYo@(bdd:3306)/"
+    depends_on:
+      - alertmanager
+    ports:
+      - 9104:9104
+    networks:
+      - monitoring
+    logging: *default-logging
+
+  redis-exporter:
+    image: oliver006/redis_exporter
+    container_name: redis-exporter
+    restart: unless-stopped
+    command:
+      - "-redis.password-file=/redis_passwd.json"
+    deploy:
+      placement:
+        constraints:
+          - 'node.hostname == vm-ubuntu-11'
+    #environment:
+    #  - REDIS_ADDR=192.168.50.11:6379
+    volumes:
+      - /docker/stack/monitor-stack/configs/redis-exporter/redis_passwd.json:/redis_passwd.json
+    depends_on:
+      - alertmanager
+    ports:
+      - 9121:9121
+    networks:
+      - monitoring
+    logging: *default-logging
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: unless-stopped
+    user: "0"
+    deploy:
+      placement:
+        constraints:
+          - 'node.hostname == vm-ubuntu-11'
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_USERS_DEFAULT_THEME=dark
+      - GF_LOG_MODE=console
+      - GF_LOG_LEVEL=critical
+      - GF_PANELS_ENABLE_ALPHA=true
+      - GF_INSTALL_PLUGINS=grafana-polystat-panel
+    volumes:
+      - /docker/stack/monitor-stack/configs/grafana/provisioning/dashboards.yml:/etc/grafana/provisioning/dashboards/provisioning-dashboards.yaml:ro
+      - /docker/stack/monitor-stack/configs/grafana/provisioning/datasources.yml:/etc/grafana/provisioning/datasources/provisioning-datasources.yaml:ro
+      - /docker/stack/monitor-stack/dashboards/node-metrics.json:/var/lib/grafana/dashboards/node-metrics.json:ro
+      - /docker/stack/monitor-stack/dashboards/container-metrics.json:/var/lib/grafana/dashboards/container-metrics.json:ro
+      - /docker/stack/monitor-stack/grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    ports:
+      - 3000:3000
+    networks:
+      - monitoring
+    logging: *default-logging
+
+  alertmanager:
+    image: prom/alertmanager
+    container_name: alertmanager
+    deploy:
+      placement:
+        constraints:
+          - 'node.hostname == vm-ubuntu-11'
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--log.level=error'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    volumes:
+      - /docker/stack/monitor-stack/configs/alertmanager/alertmanager-fallback-config.yml:/etc/alertmanager/config.yml
+    ports:
+      - 9093:9093
+    networks:
+      - monitoring
+    logging: *default-logging
+
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: unless-stopped
+    user: "0"
+    deploy:
+      placement:
+        constraints:
+          - 'node.hostname == vm-ubuntu-11'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--log.level=error'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.external-url=http://localhost:9090'
+    volumes:
+      - /docker/stack/monitor-stack/configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - /docker/stack/monitor-stack/configs/prometheus/recording-rules.yml:/etc/prometheus/recording-rules.yml
+      - /docker/stack/monitor-stack/configs/prometheus/alerting-rules.yml:/etc/prometheus/alerting-rules.yml
+      - /docker/stack/monitor-stack/prometheus-data:/prometheus
+    depends_on:
+      - alertmanager
+    ports:
+      - 9090:9090
+    networks:
+      - monitoring
+    logging: *default-logging
+
+
+networks:
+  monitoring:
+    driver: overlay
