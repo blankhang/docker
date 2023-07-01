@@ -7,9 +7,34 @@ docker and docker-compose and docker swarm project
 ## 安装 docker
 ### Linux
 Docker 的 安装资源文件 存放在Amazon S3，会间歇性连接失败。所以[在中国大陆地区]安装Docker的时候，会比较慢。  
-你可以通过执行下面的命令，高速安装Docker。
+~~你可以通过执行下面的命令，高速安装Docker。~~
+
+<pre>
+# 已不可用
+<s>curl -sSL https://get.daocloud.io/docker | sh</s>
+</pre>
+
+原版安装源国内会非常慢 改用阿里云的镜像库安装
+[官方安装源 Install Docker On Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
+
 ```shell
-curl -sSL https://get.daocloud.io/docker | sh
+# 移除旧版 docker
+sudo apt-get remove docker docker-engine docker-ce docker.io
+sudo apt-get update
+
+# apt-get 可以使用https库
+sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+
+# 添加docker的使用的公钥
+curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | sudo apt-key add -
+sudo apt-get update
+
+# 添加docker的远程库
+add-apt-repository "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
+
+
+# 安装 docker docker compose
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
 ### macOS
@@ -33,28 +58,32 @@ https://docs.docker.com/desktop/install/windows-install/
 ---
 ## 配置镜像加速
 ### Linux
-#该脚本可以将 --registry-mirror 加入到你的 Docker 配置文件 /etc/docker/daemon.json 中。适用于 Ubuntu14.04、Debian、CentOS6 、CentOS7、Fedora、Arch Linux、openSUSE Leap 42.1，其他版本可能有细微不同。更多详情请访问文档。
-```shell
-curl -sSL https://get.daocloud.io/daotools/set_mirror.sh | sh -s http://f1361db2.m.daocloud.io
-```
+#该脚本可以将 --registry-mirror 加入到你的 Docker 配置文件 /etc/docker/daemon.json 中。适用于 Ubuntu、Debian、CentOS、Fedora、Arch Linux、openSUSE Leap 42.1，其他版本可能有细微不同。更多详情请访问文档。
+
+<pre>
+# 已不可用
+<s>curl -sSL https://get.daocloud.io/daotools/set_mirror.sh | sh -s http://f1361db2.m.daocloud.io</s>
+</pre>
+
 ### macOS
 Docker Desktop For Mac
 
 右键点击桌面顶栏的 docker 图标，选择 Preferences ，修改在 Docker Engine 标签页中的 json ，在 Registry mirrors 列表中加入下面的镜像地址:
-http://f1361db2.m.daocloud.io
+https://hub-mirror.c.163.com
 点击 Apply & Restart 按钮使设置生效。
 
 ### Windows
 Docker Desktop For Windows
 
 在桌面右下角状态栏中右键 docker 图标，选择 Settings ，修改在 Docker Engine 标签页中的 json ， 在 Registry mirrors 列表中加入下面的镜像地址:  
-http://f1361db2.m.daocloud.io
+https://hub-mirror.c.163.com
 点击 Apply & Restart 按钮使设置生效。  
 完整的json配置文件看起来像这样
 ```json
 {
   "registry-mirrors": [
-    "http:f1361db2.m.daocloud.io"
+    "https://hub-mirror.c.163.com",
+    "https://mirror.baidubce.com"
   ],
   "builder": {
     "gc": {
@@ -62,7 +91,7 @@ http://f1361db2.m.daocloud.io
       "enabled": true
     }
   },
-  "experimental": false,
+  "experimental": true,
   "features": {
     "buildkit": true
   }
