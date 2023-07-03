@@ -36,10 +36,9 @@ docker run --rm  -it    -v "/docker/nginx/ssl":/acme.sh    neilpang/acme.sh acme
 
 安装证书完成后
 
-- `/docker/nginx/ssl/*.aaa.com.key` 
 - `/docker/nginx/ssl/*.aaa.com.fullchain.cer`  
 
-为证书文件
+为`fullchain`证书文件
 
 ---
 plus

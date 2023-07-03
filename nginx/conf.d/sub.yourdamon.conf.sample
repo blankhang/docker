@@ -11,6 +11,9 @@ server {
     ssl_certificate /etc/nginx/ssl/$$your domain.fullchain.cer;
     ssl_certificate_key /etc/nginx/ssl/$$your domain.key;
 
+    # verify chain of trust of OCSP response using Root CA and Intermediate certs
+    ssl_trusted_certificate //etc/nginx/ssl/$$your domain.fullchain.cer；
+
     # load ssl conf
     include /etc/nginx/ssl/options-ssl-nginx.conf;
 
