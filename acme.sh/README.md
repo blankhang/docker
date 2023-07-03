@@ -3,17 +3,17 @@ ALI
 ## 申请证书
 
 ### 第一次运行需要注册账户
-docker run --rm  -it    -v "/docker/nginx/ssl":/acme.sh    -e Ali_Key="LTAI5tGJDEscEJDnWmYYnQWM"   -e Ali_Secret="4BCIe2Ey7WHexbCkBBAEAlKV1Yykdi"   neilpang/acme.sh --register-account -m blankhang@gmail.com --server zerossl
+docker run --rm  -it    -v "/docker/nginx/ssl":/acme.sh    -e Ali_Key="YOUR ALI KEY"   -e Ali_Secret="YOUR ALI Secret"   neilpang/acme.sh --register-account -m blankhang@gmail.com --server zerossl
 
 ### 如果不是首次运行 则运行此行
-docker run --rm  -it    -v "/docker/nginx/ssl":/acme.sh    -e Ali_Key="LTAI5tGJDEscEJDnWmYYnQWM"   -e Ali_Secret="4BCIe2Ey7WHexbCkBBAEAlKV1Yykdi"   neilpang/acme.sh --issue --log --dns dns_ali -d *.blank.run
+docker run --rm  -it    -v "/docker/nginx/ssl":/acme.sh    -e Ali_Key="YOUR ALI KEY"   -e Ali_Secret="YOUR ALI Secret"   neilpang/acme.sh --issue --log --dns dns_ali -d *.blank.run
 
 docker run --rm  -it    -v "/docker/nginx/ssl":/acme.sh    neilpang/acme.sh   acme.sh --server zerossl --register-account 77582cfcb1f6844aacb4747955d5eeb8
 
 docker run --rm  -it    -v "/docker/nginx/ssl":/acme.sh    neilpang/acme.sh   acme.sh --server zerossl --register-account --eab-kid  Ycz52-b_q8X8YisBRDa-PQ --eab-hmac-key  EgCZsRyBr489eQKoeYH82f5Dd02hVMTuLi8w9jN_OWH0xRd5vnrKpWGJo0q8sjBNOiqpRLURR5AdxehiE7Efxw
 
 ### 申请证书
-docker run --rm  -it    -v "/docker/nginx/ssl":/acme.sh    -e Ali_Key="LTAI5tGJDEscEJDnWmYYnQWM"   -e Ali_Secret="4BCIe2Ey7WHexbCkBBAEAlKV1Yykdi"   neilpang/acme.sh --issue --log --dns dns_ali -d *.blank.run
+docker run --rm  -it    -v "/docker/nginx/ssl":/acme.sh    -e Ali_Key="YOUR ALI KEY"   -e Ali_Secret="YOUR ALI Secret"   neilpang/acme.sh --issue --log --dns dns_ali -d *.blank.run
 
 
 
@@ -37,7 +37,7 @@ dnspod id toekn 获取: https://console.dnspod.cn/account/token/token
 docker run --rm  -it    -v "/docker/nginx/ssl":/acme.sh neilpang/acme.sh --register-account --server zerossl --eab-kid EAB KID --eab-hmac-key EAB HMAC Key
 
 ### 申请证书
-docker run --rm  -it    -v "/docker/nginx/ssl":/acme.sh -e DP_Id="423290"   -e DP_Key="85335ff4d53546a049246b5acc0a1dd2"   neilpang/acme.sh --issue --server zerossl --log --dns dns_dp -d *.mayangmedia.com
+docker run --rm  -it    -v "/docker/nginx/ssl":/acme.sh -e DP_Id="YOUR DP ID"   -e DP_Key="YOUR DP TOKEN"   neilpang/acme.sh --issue --server zerossl --log --dns dns_dp -d *.mayangmedia.com
 
 
 ### 安装证书
