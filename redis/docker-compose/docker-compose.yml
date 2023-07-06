@@ -8,9 +8,9 @@ services:
     container_name: redis
     hostname: redis
     healthcheck:
-      test: curl -s https://localhost:59394 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
-      timeout: 10s
+      timeout: 3s
       retries: 3
 #    volumes:
 #      - '/docker/redis/conf/redis.conf:/usr/local/etc/redis/redis.conf'
