@@ -15,3 +15,14 @@ docker stack deploy -c portainer-agent-stack.yml portainer
 curl -L https://downloads.portainer.io/portainer-agent-stack.yml -o portainer-agent-stack.yml
 docker stack deploy -c portainer-agent-stack.yml portainer
 ```
+
+
+
+---
+bugfix
+
+```shell
+# Failed loading environment 
+# Unable to find an agent on any manager node
+docker service update portainer_agent --force
+```

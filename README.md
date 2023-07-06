@@ -62,12 +62,8 @@ https://docs.docker.com/desktop/install/windows-install/
 ---
 ## 配置镜像加速
 ### Linux
-#该脚本可以将 --registry-mirror 加入到你的 Docker 配置文件 /etc/docker/daemon.json 中。适用于 Ubuntu、Debian、CentOS、Fedora、Arch Linux、openSUSE Leap 42.1，其他版本可能有细微不同。更多详情请访问文档。
+#将 --registry-mirror  Docker 配置文件 /etc/docker/daemon.json 中。适用于 Ubuntu、Debian、CentOS、Fedora、Arch Linux、openSUSE Leap 42.1，其他版本可能有细微不同。更多详情请访问文档。
 
-<pre>
-# 已不可用
-<s>curl -sSL https://get.daocloud.io/daotools/set_mirror.sh | sh -s http://f1361db2.m.daocloud.io</s>
-</pre>
 
 ### macOS
 Docker Desktop For Mac
