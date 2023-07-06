@@ -14,12 +14,12 @@ Docker 的 安装资源文件 存放在Amazon S3，会间歇性连接失败。�
 <s>curl -sSL https://get.daocloud.io/docker | sh</s>
 </pre>
 
-我自己写的快速安装脚本 使用阿里支的镜像    
+我自己写的快速安装脚本 使用阿里云的镜像    
 ```shell
 curl -sSL https://github.com/blankhang/docker/raw/master/install-docker.sh | sh
 ```
-原版安装源国内会非常慢 改用阿里云的镜像库安装
 [官方安装源 Install Docker On Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
+原版安装源国内会非常慢 改用阿里云的镜像库安装
 
 ```shell
 # 移除旧版 docker
