@@ -17,12 +17,8 @@ Docker 的 安装资源文件 存放在Amazon S3，会间歇性连接失败。�
 我自己写的快速安装脚本 使用阿里云的镜像    
 ```shell
 curl -sSL https://github.com/blankhang/docker/raw/master/install-docker.sh | sh
-```
-[官方安装方法 Install Docker On Ubuntu](https://docs.docker.com/engine/install/ubuntu/)  
 
-原版安装源国内会非常慢 改用阿里云的镜像库安装
-
-```shell
+或者手动执行脚本内容
 # 移除旧版 docker
 sudo apt-get remove docker docker-engine docker-ce docker.io
 sudo apt-get update
@@ -40,6 +36,11 @@ add-apt-repository "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/
 # 安装 docker docker compose
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
+
+[官方安装方法 Install Docker On Ubuntu](https://docs.docker.com/engine/install/ubuntu/)  
+
+原版安装源国内会非常慢 改用阿里云的镜像库安装
+
 
 ### macOS
 Docker安装包下载后直接安装
