@@ -14,7 +14,7 @@ Docker 的 安装资源文件 存放在Amazon S3，会间歇性连接失败。�
 <s>curl -sSL https://get.daocloud.io/docker | sh</s>
 </pre>
 
-# 我自己写的快速安装脚本 使用阿里支的镜像    
+我自己写的快速安装脚本 使用阿里支的镜像    
 ```shell
 curl -sSL https://github.com/blankhang/docker/raw/master/install-docker.sh | sh
 ```
