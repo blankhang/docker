@@ -17,8 +17,9 @@ Docker 的 安装资源文件 存放在Amazon S3，会间歇性连接失败。�
 我自己写的快速安装脚本 使用阿里云的镜像    
 ```shell
 curl -sSL https://github.com/blankhang/docker/raw/master/install-docker.sh | sh
-
+```
 或者手动执行脚本内容
+```shell
 # 移除旧版 docker
 sudo apt-get remove docker docker-engine docker-ce docker.io
 sudo apt-get update
