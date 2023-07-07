@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  emqx:
+    hostname: emqx
+    image: emqx/emqx
+    environment:
+      - "TZ=Asia/Shanghai"
+      - "EMQX_NAME=emqx"
+      - "EMQX_HOST=node1.emqx.io"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18083/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    #volumes:
+    #  - ./data:/data
+    ports:
+      - "1883:1883"
+      - "8083:8083"
+      - "8883:8883"
+      - "8084:8084"
+      - "18083:18083"
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
