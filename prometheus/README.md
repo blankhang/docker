@@ -254,5 +254,6 @@ https://github.com/blankhang/docker/blob/master/prometheus/configs/prometheus/pr
 
 http://192.168.50.11:9090/targets?  
 将会显示所有配置在`configs/prometheus/prometheus.yml`服务监控状态
+![prometheus-targets](https://github.com/blankhang/docker/assets/3981276/bc2a8644-d652-4b53-9631-aae3e07c7817)
 
 ### 然后配置 grafana
