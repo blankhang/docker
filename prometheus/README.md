@@ -1,4 +1,4 @@
-# Prometheus + grafana 监控平台部署
+# Prometheus + grafana 数据监控平台部署
 
 
 ---
@@ -16,7 +16,7 @@ Prometheus 是一个非常流行的开源监控系统，用于监控和报警。
 
 ---
 快速部署
-
+当前服务器IP为 192.168.50.11
 当前目录为 /docker/docker-stack/prometheus/  
 
 代码在 https://github.com/blankhang/docker/tree/master/prometheus
@@ -210,6 +210,141 @@ networks:
     driver: overlay
 ```
 
+配置`prometheus`核心配置文件 https://github.com/blankhang/docker/blob/master/prometheus/configs/prometheus/prometheus.yml
+```yaml
+global:
+  scrape_interval: 60s # Set the scrape interval to every 5 seconds. Default is every 1 minute.
+  evaluation_interval: 60s # Evaluate rules every 15 seconds. The default is every 1 minute.
+# scrape_timeout is set to the global default (10s).  
+  external_labels:
+    namespace: local
+
+rule_files:
+  - /etc/prometheus/recording-rules.yml
+  - /etc/prometheus/alerting-rules.yml
+
+alerting:
+  alertmanagers:
+    - scheme: http
+      static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: [ 'localhost:9090' ]
+        labels:
+          container: 'prometheus'
+
+  - job_name: alertmanager
+    static_configs:
+      - targets: [ 'alertmanager:9093' ]
+        labels:
+          container: 'alertmanager'
+
+  - job_name: node-exporter
+    static_configs:
+      - targets: 
+        - '192.168.50.11:9100'
+        - '192.168.50.12:9100'
+        - '192.168.50.13:9100'
+        - '192.168.50.14:9100'
+        - '192.168.50.15:9100'
+
+  - job_name: cadvisor
+    static_configs:
+      - targets:
+        - '192.168.50.11:8080'
+        - '192.168.50.12:8080'
+        - '192.168.50.13:8080'
+        - '192.168.50.14:8080'
+        - '192.168.50.15:8080'
+
+  - job_name: mysql-exporter
+    static_configs: 
+      - targets: [ '192.168.50.11:9104' ] 
+        # labels: 
+        #   instance: 'mysql-exporter'
+
+  - job_name: redis-exporter
+    # https://github.com/oliver006/redis_exporter/blob/master/README.md
+    #redis grafana dashboard id 763
+    static_configs:
+      - targets: 
+        - 'redis://192.168.50.11:6379'
+    metrics_path: /scrape        
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 192.168.50.11:9121
+
+  - job_name: minio
+    # minio grafana dashboard id 13502
+    # https://grafana.com/grafana/dashboards/13502-minio-dashboard/
+    # see more
+    # https://github.com/minio/minio/blob/master/docs/metrics/prometheus/README.md
+    # MinIO deployments started with MINIO_PROMETHEUS_AUTH_TYPE set to "public" can omit the bearer_token field. 
+    #bearer_token: TOKEN
+    metrics_path: /minio/v2/metrics/cluster
+    scrape_interval: 60s
+    params:
+      format: [ 'prometheus' ]    
+    scheme: http
+    tls_config:
+      insecure_skip_verify: true
+    static_configs:
+      - targets:
+        - '192.168.50.11:9000'
+        - '192.168.50.12:9000'
+        - '192.168.50.13:9000'
+        - '192.168.50.14:9000'
+
+  - job_name: jenkins
+    # https://grafana.com/grafana/dashboards/9964-jenkins-performance-and-health-overview/
+    # dashboard id 9964
+    # jenkins need install https://plugins.jenkins.io/prometheus/ first
+    # http://<jenkinsIP>:<Port>/prometheus/
+    metrics_path: /prometheus
+    scheme: http
+    static_configs:
+      - targets:
+        - '192.168.50.11:8888'
+
+  - job_name: emqx
+    # https://grafana.com/grafana/dashboards/17446-emqx/
+    # dashboard id 17446
+    metrics_path: /api/v5/prometheus/stats
+    scrape_interval: 60s
+    honor_labels: true
+    static_configs:
+      # EMQX IP address and port
+      - targets: ['192.168.50.11:18083']
+
+  #- job_name: nginx
+  #nginx grafana dashboard id 9614
+  
+
+  - job_name: nacos
+    # dashboard id 13221
+    scrape_interval: 60s
+    metrics_path: '/nacos/actuator/prometheus'
+    static_configs:
+      - targets: ['192.168.50.11:8848']
+        labels:
+          instance: nacos
+
+
+  - job_name: springboot-wifi
+    # dashboard id 4701
+    scrape_interval: 60s
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['192.168.50.2:9100']
+```
+
 
 创建 mysql exporter 监控账号   
 mysql5.7
@@ -241,20 +376,46 @@ GRANT SELECT ON performance_schema.* TO 'exporter'@'localhost';
 # 授予 'exporter' 用户对 information_schema 数据库的 SELECT 权限，以允许该用户查询数据库的元数据信息。
 GRANT SELECT ON information_schema.* TO 'exporter'@'localhost';
 ```
+修改`/configs/mysql-exporter/my.cnf` 文件，改成你的mysql的 ip、端口以及上面刚配置的用户名、密码。
+```
+[client]
+host=192.168.50.11
+port=3306
+user=exporter
+password=exporter
+```
+修改`/configs/redis-exporter/redis_passwd.json` json配置文件，改成你的redis的 ip、端口、密码 无密码留空。
+```json
+{
+  "redis://192.168.50.11:6379":""
+}
+```
+支持多节点配置
+```json
+{
+  "redis://NODE1IP:PORT":"PWD",
+  "redis://NODE2IP:PORT":"PWD",
+  "redis://NODE3IP:PORT":"PWD"
+}
+```
+
 
 执行 [start-prometheus-stack.sh](https://github.com/blankhang/docker/blob/master/prometheus/start-prometheus-stack.sh)
 ```shell
 docker stack deploy --resolve-image always -c prometheus-stack.yml prometheus-stack
 ```
 
-grafana 的`模板id`在此配置文件的注释中有
+grafana 的`模板id`在此配置文件的注释中有 也可以去grafana官网搜索
 https://github.com/blankhang/docker/blob/master/prometheus/configs/prometheus/prometheus.yml
 
+访问 prometheus
+http://192.168.50.11:9090/targets 
+将会显示所有配置在`configs/prometheus/prometheus.yml`服务的状态
 
-
-http://192.168.50.11:9090/targets?  
-将会显示所有配置在`configs/prometheus/prometheus.yml`服务监控状态
 ![prometheus-targets](https://github.com/blankhang/docker/assets/3981276/bc2a8644-d652-4b53-9631-aae3e07c7817)
 
 ### 然后配置 grafana
 http://192.168.50.11:3000/
+1. 配置 dashboard 点击右上角 选择  Import dashboard  
+2. 输入模板ID 点击 Load
+3. 访问 dashboard 查看监控效果
