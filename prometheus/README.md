@@ -433,6 +433,32 @@ nacos模板 13221
 linux host模板 12633
 ![prometheus-grafana-linux-host-dashboard](https://github.com/blankhang/docker/assets/3981276/dec2e93e-850b-4e4c-be39-9e15cd71b2b9)
 
-jvm模板 4701
+jvm模板 4701  
+jvm项目pom中添加如下依赖
+```pom
+        <!--这个依赖用于把数据转换为prometheus格式使用-->
+        <!-- https://mvnrepository.com/artifact/io.micrometer/micrometer-registry-prometheus -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <version>1.11.0</version>
+        </dependency>
+```
+然后springboot中security配置需要放行 prometheus url
+```java
+/**
+ * spring security配置
+ *
+ * @author blank
+ */
+@EnableGlobalMethodSecurity(prePostEnabled = true, securedEnabled = true)
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+    
+    @Override
+    protected void configure (HttpSecurity httpSecurity) throws Exception { 
+        httpSecurity.antMatchers("/actuator/prometheus").permitAll();
+    }
+}
+```
 ![prometheus-grafana-jvm-dashboard](https://github.com/blankhang/docker/assets/3981276/81fad8fb-970b-45a1-aaeb-d5997d0dcb9c)
 
