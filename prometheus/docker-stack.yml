@@ -60,8 +60,12 @@ services:
       placement:
         constraints:
           - 'node.hostname == vm-ubuntu-11'
-    environment:
-      - DATA_SOURCE_NAME="root:bXnT5oJp79*nRoYfSYYo@(bdd:3306)/"
+    #environment:
+    # NOT WORKING wi
+    #  - DATA_SOURCE_NAME="root:root@(192.168.50.11:3306)/"
+    volumes:
+      - /docker/docker-stack/prometheus/configs/mysql-exporter/my.cnf:/.my.cnf
+    command: --config.my-cnf=/.my.cnf
     depends_on:
       - alertmanager
     ports:
@@ -83,7 +87,7 @@ services:
     #environment:
     #  - REDIS_ADDR=192.168.50.11:6379
     volumes:
-      - /docker/stack/monitor-stack/configs/redis-exporter/redis_passwd.json:/redis_passwd.json
+      - /docker/docker-stack/prometheus/configs/redis-exporter/redis_passwd.json:/redis_passwd.json
     depends_on:
       - alertmanager
     ports:
@@ -110,11 +114,11 @@ services:
       - GF_PANELS_ENABLE_ALPHA=true
       - GF_INSTALL_PLUGINS=grafana-polystat-panel
     volumes:
-      - /docker/stack/monitor-stack/configs/grafana/provisioning/dashboards.yml:/etc/grafana/provisioning/dashboards/provisioning-dashboards.yaml:ro
-      - /docker/stack/monitor-stack/configs/grafana/provisioning/datasources.yml:/etc/grafana/provisioning/datasources/provisioning-datasources.yaml:ro
-      - /docker/stack/monitor-stack/dashboards/node-metrics.json:/var/lib/grafana/dashboards/node-metrics.json:ro
-      - /docker/stack/monitor-stack/dashboards/container-metrics.json:/var/lib/grafana/dashboards/container-metrics.json:ro
-      - /docker/stack/monitor-stack/grafana-data:/var/lib/grafana
+      - /docker/docker-stack/prometheus/configs/grafana/provisioning/dashboards.yml:/etc/grafana/provisioning/dashboards/provisioning-dashboards.yaml:ro
+      - /docker/docker-stack/prometheus/configs/grafana/provisioning/datasources.yml:/etc/grafana/provisioning/datasources/provisioning-datasources.yaml:ro
+      - /docker/docker-stack/prometheus/dashboards/node-metrics.json:/var/lib/grafana/dashboards/node-metrics.json:ro
+      - /docker/docker-stack/prometheus/dashboards/container-metrics.json:/var/lib/grafana/dashboards/container-metrics.json:ro
+      - /docker/docker-stack/prometheus/grafana-data:/var/lib/grafana
     depends_on:
       - prometheus
     ports:
@@ -136,7 +140,7 @@ services:
       - '--storage.path=/alertmanager'
       - '--web.external-url=http://localhost:9093'
     volumes:
-      - /docker/stack/monitor-stack/configs/alertmanager/alertmanager-fallback-config.yml:/etc/alertmanager/config.yml
+      - /docker/docker-stack/prometheus/configs/alertmanager/alertmanager-fallback-config.yml:/etc/alertmanager/config.yml
     ports:
       - 9093:9093
     networks:
@@ -162,10 +166,10 @@ services:
       - '--web.console.templates=/usr/share/prometheus/consoles'
       - '--web.external-url=http://localhost:9090'
     volumes:
-      - /docker/stack/monitor-stack/configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - /docker/stack/monitor-stack/configs/prometheus/recording-rules.yml:/etc/prometheus/recording-rules.yml
-      - /docker/stack/monitor-stack/configs/prometheus/alerting-rules.yml:/etc/prometheus/alerting-rules.yml
-      - /docker/stack/monitor-stack/prometheus-data:/prometheus
+      - /docker/docker-stack/prometheus/configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - /docker/docker-stack/prometheus/configs/prometheus/recording-rules.yml:/etc/prometheus/recording-rules.yml
+      - /docker/docker-stack/prometheus/configs/prometheus/alerting-rules.yml:/etc/prometheus/alerting-rules.yml
+      - /docker/docker-stack/prometheus/prometheus-data:/prometheus
     depends_on:
       - alertmanager
     ports:

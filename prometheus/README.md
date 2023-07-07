@@ -16,3 +16,35 @@ Prometheus 是一个非常流行的开源监控系统，用于监控和报警。
 
 ---
 当前目录为 /docker/stack/monitor-stack/
+
+创建 mysql exporter 监控账号 
+### mysql5.7
+```mysql
+# 创建名为 'exporter' 的用户，并指定该用户仅能从本地主机 (localhost) 连接到数据库。密码为 'exporter'。
+CREATE USER 'exporter'@'localhost' IDENTIFIED BY 'exporter' WITH MAX_USER_CONNECTIONS 3;
+
+# 授予 'exporter' 用户 PROCESS 和 REPLICATION CLIENT 权限，以便该用户可以查看进程列表和执行复制相关操作。
+GRANT PROCESS, REPLICATION CLIENT TO 'exporter'@'localhost';
+
+# 授予 'exporter' 用户对 performance_schema 数据库的 SELECT 权限，以允许该用户查询性能相关的信息。
+GRANT SELECT ON performance_schema.* TO 'exporter'@'localhost';
+
+# 授予 'exporter' 用户对 information_schema 数据库的 SELECT 权限，以允许该用户查询数据库的元数据信息。
+GRANT SELECT ON information_schema.* TO 'exporter'@'localhost';
+```
+
+### mysql8
+```mysql
+# 创建名为 'exporter' 的用户，并指定该用户仅能从本地主机 (localhost) 连接到数据库。密码为 'exporter'。
+CREATE USER 'exporter'@'localhost' IDENTIFIED BY 'exporter';
+ALTER USER 'exporter'@'localhost' WITH MAX_USER_CONNECTIONS 3;
+
+# 授予 'exporter' 用户 PROCESS 和 REPLICATION CLIENT 权限，以便该用户可以查看进程列表和执行复制相关操作。
+GRANT PROCESS, REPLICATION CLIENT ON *.* TO 'exporter'@'localhost';
+
+# 授予 'exporter' 用户对 performance_schema 数据库的 SELECT 权限，以允许该用户查询性能相关的信息。
+GRANT SELECT ON performance_schema.* TO 'exporter'@'localhost';
+
+# 授予 'exporter' 用户对 information_schema 数据库的 SELECT 权限，以允许该用户查询数据库的元数据信息。
+GRANT SELECT ON information_schema.* TO 'exporter'@'localhost';
+```
