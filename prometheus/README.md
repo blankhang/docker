@@ -421,3 +421,4 @@ http://192.168.50.11:3000/
 2. 输入模板ID 如 redis的模板 763 点击 Load
 3. 访问 dashboard 查看监控效果
 
+![prometheus-grafana-redis-dashboard](https://github.com/blankhang/docker/assets/3981276/29ce79d1-b2dd-4749-ba0f-2c3a2447a136)
