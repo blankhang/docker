@@ -421,4 +421,18 @@ http://192.168.50.11:3000/
 2. 输入模板ID 如 redis的模板 763 点击 Load
 3. 访问 dashboard 查看监控效果
 
+redis模板 763
 ![prometheus-grafana-redis-dashboard](https://github.com/blankhang/docker/assets/3981276/29ce79d1-b2dd-4749-ba0f-2c3a2447a136)
+
+minio模板 13502
+![prometheus-grafana-minio-dashboard](https://github.com/blankhang/docker/assets/3981276/e040de4b-8a10-42a2-ba0f-230d23e70abd)
+
+nacos模板 13221
+![prometheus-grafana-nacos-dashboard](https://github.com/blankhang/docker/assets/3981276/e474b1f6-e3ca-49ba-bbc4-a5ecb90909cd)
+
+linux host模板 12633
+![prometheus-grafana-linux-host-dashboard](https://github.com/blankhang/docker/assets/3981276/dec2e93e-850b-4e4c-be39-9e15cd71b2b9)
+
+jvm模板 4701
+![prometheus-grafana-jvm-dashboard](https://github.com/blankhang/docker/assets/3981276/81fad8fb-970b-45a1-aaeb-d5997d0dcb9c)
+
