@@ -1,4 +1,4 @@
-# Prometheus 
+# Prometheus + grafana 监控平台部署
 
 
 ---
@@ -15,10 +15,204 @@ Prometheus 是一个非常流行的开源监控系统，用于监控和报警。
 
 
 ---
-当前目录为 /docker/stack/monitor-stack/
+快速部署
 
-创建 mysql exporter 监控账号 
-### mysql5.7
+当前目录为 /docker/docker-stack/prometheus/  
+
+代码在 https://github.com/blankhang/docker/tree/master/prometheus
+
+请将 docker-stack.yml中的`node.hostname`修改为你自己想要部署的节点名
+
+```yaml
+version: '3.9'
+
+x-logging:
+  &default-logging
+  driver: "json-file"
+  options:
+    max-size: "1m"
+    max-file: "1"
+    tag: "{{.Name}}"
+
+services:
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    deploy:
+      mode: global
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      # https://github.com/google/cadvisor/issues/1565#issuecomment-718812180
+      - /var/run/docker.sock:/var/run/docker.sock
+      #- /dev/disk:/dev/disk:ro
+    ports:
+      - 8080:8080
+    networks:
+      - monitoring
+    logging: *default-logging
+
+  node-exporter:
+    image: prom/node-exporter
+    container_name: node-exporter
+    restart: unless-stopped
+    deploy:
+      mode: global
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points'
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+    ports:
+      - 9100:9100
+    networks:
+      - monitoring
+    logging: *default-logging
+
+  mysql-exporter:
+    image: prom/mysqld-exporter
+    container_name: mysql-exporter
+    restart: unless-stopped
+    deploy:
+      placement:
+        constraints:
+          - 'node.hostname == vm-ubuntu-11'
+    #environment:
+    # NOT WORKING wi
+    #  - DATA_SOURCE_NAME="root:root@(192.168.50.11:3306)/"
+    volumes:
+      - /docker/docker-stack/prometheus/configs/mysql-exporter/my.cnf:/.my.cnf
+    command: --config.my-cnf=/.my.cnf
+    depends_on:
+      - alertmanager
+    ports:
+      - 9104:9104
+    networks:
+      - monitoring
+    logging: *default-logging
+
+  redis-exporter:
+    image: oliver006/redis_exporter
+    container_name: redis-exporter
+    restart: unless-stopped
+    command:
+      - "-redis.password-file=/redis_passwd.json"
+    deploy:
+      placement:
+        constraints:
+          - 'node.hostname == vm-ubuntu-11'
+    #environment:
+    #  - REDIS_ADDR=192.168.50.11:6379
+    volumes:
+      - /docker/docker-stack/prometheus/configs/redis-exporter/redis_passwd.json:/redis_passwd.json
+    depends_on:
+      - alertmanager
+    ports:
+      - 9121:9121
+    networks:
+      - monitoring
+    logging: *default-logging
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: unless-stopped
+    user: "0"
+    deploy:
+      placement:
+        constraints:
+          - 'node.hostname == vm-ubuntu-11'
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_USERS_DEFAULT_THEME=dark
+      - GF_LOG_MODE=console
+      - GF_LOG_LEVEL=critical
+      - GF_PANELS_ENABLE_ALPHA=true
+      - GF_INSTALL_PLUGINS=grafana-polystat-panel
+    volumes:
+      - /docker/docker-stack/prometheus/configs/grafana/provisioning/dashboards.yml:/etc/grafana/provisioning/dashboards/provisioning-dashboards.yaml:ro
+      - /docker/docker-stack/prometheus/configs/grafana/provisioning/datasources.yml:/etc/grafana/provisioning/datasources/provisioning-datasources.yaml:ro
+      - /docker/docker-stack/prometheus/dashboards/node-metrics.json:/var/lib/grafana/dashboards/node-metrics.json:ro
+      - /docker/docker-stack/prometheus/dashboards/container-metrics.json:/var/lib/grafana/dashboards/container-metrics.json:ro
+      - /docker/docker-stack/prometheus/grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    ports:
+      - 3000:3000
+    networks:
+      - monitoring
+    logging: *default-logging
+
+  alertmanager:
+    image: prom/alertmanager
+    container_name: alertmanager
+    deploy:
+      placement:
+        constraints:
+          - 'node.hostname == vm-ubuntu-11'
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--log.level=error'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    volumes:
+      - /docker/docker-stack/prometheus/configs/alertmanager/alertmanager-fallback-config.yml:/etc/alertmanager/config.yml
+    ports:
+      - 9093:9093
+    networks:
+      - monitoring
+    logging: *default-logging
+
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: unless-stopped
+    user: "0"
+    deploy:
+      placement:
+        constraints:
+          - 'node.hostname == vm-ubuntu-11'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--log.level=error'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.external-url=http://localhost:9090'
+    volumes:
+      - /docker/docker-stack/prometheus/configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - /docker/docker-stack/prometheus/configs/prometheus/recording-rules.yml:/etc/prometheus/recording-rules.yml
+      - /docker/docker-stack/prometheus/configs/prometheus/alerting-rules.yml:/etc/prometheus/alerting-rules.yml
+      - /docker/docker-stack/prometheus/prometheus-data:/prometheus
+    depends_on:
+      - alertmanager
+    ports:
+      - 9090:9090
+    networks:
+      - monitoring
+    logging: *default-logging
+
+
+networks:
+  monitoring:
+    driver: overlay
+```
+
+
+创建 mysql exporter 监控账号   
+mysql5.7
 ```mysql
 # 创建名为 'exporter' 的用户，并指定该用户仅能从本地主机 (localhost) 连接到数据库。密码为 'exporter'。
 CREATE USER 'exporter'@'localhost' IDENTIFIED BY 'exporter' WITH MAX_USER_CONNECTIONS 3;
@@ -32,8 +226,7 @@ GRANT SELECT ON performance_schema.* TO 'exporter'@'localhost';
 # 授予 'exporter' 用户对 information_schema 数据库的 SELECT 权限，以允许该用户查询数据库的元数据信息。
 GRANT SELECT ON information_schema.* TO 'exporter'@'localhost';
 ```
-
-### mysql8
+mysql8
 ```mysql
 # 创建名为 'exporter' 的用户，并指定该用户仅能从本地主机 (localhost) 连接到数据库。密码为 'exporter'。
 CREATE USER 'exporter'@'localhost' IDENTIFIED BY 'exporter';
@@ -48,3 +241,18 @@ GRANT SELECT ON performance_schema.* TO 'exporter'@'localhost';
 # 授予 'exporter' 用户对 information_schema 数据库的 SELECT 权限，以允许该用户查询数据库的元数据信息。
 GRANT SELECT ON information_schema.* TO 'exporter'@'localhost';
 ```
+
+执行 [start-prometheus-stack.sh](https://github.com/blankhang/docker/blob/master/prometheus/start-prometheus-stack.sh)
+```shell
+docker stack deploy --resolve-image always -c prometheus-stack.yml prometheus-stack
+```
+
+grafana 的`模板id`在此配置文件的注释中有
+https://github.com/blankhang/docker/blob/master/prometheus/configs/prometheus/prometheus.yml
+
+
+
+http://192.168.50.11:9090/targets?  
+将会显示所有配置在`configs/prometheus/prometheus.yml`服务监控状态
+
+### 然后配置 grafana
