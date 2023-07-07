@@ -403,6 +403,7 @@ password=exporter
 执行 [start-prometheus-stack.sh](https://github.com/blankhang/docker/blob/master/prometheus/start-prometheus-stack.sh)
 ```shell
 docker stack deploy --resolve-image always -c prometheus-stack.yml prometheus-stack
+
 ```
 
 grafana 的`模板id`在此配置文件的注释中有 也可以去grafana官网搜索
@@ -417,5 +418,6 @@ http://192.168.50.11:9090/targets
 ### 然后配置 grafana
 http://192.168.50.11:3000/
 1. 配置 dashboard 点击右上角 选择  Import dashboard  
-2. 输入模板ID 点击 Load
+2. 输入模板ID 如 redis的模板 763 点击 Load
 3. 访问 dashboard 查看监控效果
+
