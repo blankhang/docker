@@ -25,4 +25,5 @@ bugfix
 # Failed loading environment 
 # Unable to find an agent on any manager node
 docker service update portainer_agent --force
+docker service update portainer_portainer --force
 ```

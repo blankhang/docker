@@ -1,15 +1,15 @@
-version: '3.7'
+version: '3.8'
 
 services:
 
   redis:
-    image: redis:6
+    image: redis:7
     restart: always
     container_name: redis
     ports:
       - "6379:6379"
     volumes:
-      - "./data:/data"
+      - "./redis_data:/data"
     #command: redis-server --appendonly yes --requirepass "blank@redis"
     environment:
       - TZ=Asia/Shanghai

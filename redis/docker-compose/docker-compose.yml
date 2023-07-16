@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.8'
 
 services:
 
@@ -9,7 +9,7 @@ services:
     hostname: redis
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
-      interval: 5s
+      interval: 60s
       timeout: 3s
       retries: 3
 #    volumes:
