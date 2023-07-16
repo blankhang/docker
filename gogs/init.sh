@@ -6,14 +6,14 @@ chmod 755 /docker/gogs/{data,log}
 
 # create gogs's docker-compose file
 cat << 'EOF' > /docker/gogs/docker-compose.yml
-version: '3.7'
+version: '3.8'
 
 services:
   gogs:
     image: gogs/gogs
     container_name: gogs
     restart: always
-    privileged: true
+    #privileged: true
     healthcheck:
       test: curl -s https://localhost:3000 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
       interval: 5s
@@ -22,10 +22,10 @@ services:
     environment:
       TZ: "Asia/Shanghai"
     volumes:
-      - "/docker/gogs/data:/data"
-      - "/docker/gogs/log:/data/gogs/log"
+      - "./gogs_data:/data"
+      - "./gogs_log:/var/log/gogs"
     ports:
-      - 3000:3000
+      - "3000:3000"
 EOF
 
 # create gogs start script
