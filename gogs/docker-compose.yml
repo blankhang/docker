@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.8'
 
 services:
   gogs:
@@ -14,7 +14,7 @@ services:
     environment:
       TZ: "Asia/Shanghai"
     volumes:
-      - "/docker/gogs/data:/data"
-      - "/docker/gogs/log:/var/log/gogs"
+      - "./gogs_data:/data"
+      - "./gogs_log:/var/log/gogs"
     ports:
-      - 3000:3000
+      - "3000:3000"
