@@ -6,8 +6,8 @@
 # 申请证书 阿里云 主域名
 docker run --rm  -it  \
   -v "/docker/nginx/ssl":/acme.sh  \
-  -e Ali_Key="$$your Ali_Key" \
-  -e Ali_Secret="$$your Ali_Secret" \
+  -e Ali_Key="${YOUR-Ali-Key}" \
+  -e Ali_Secret="${YOUR-Ali-Secret}" \
   neilpang/acme.sh --issue --log --dns dns_ali -d 'aaa.com'
 
 # 安装证书
@@ -19,11 +19,40 @@ docker run --rm  -it  \
 # 申请证书 范域名
 docker run --rm  -it  \
   -v "/docker/nginx/ssl":/acme.sh  \
-  -e Ali_Key="$$your Ali_Key" \
-  -e Ali_Secret="$$your Ali_Secret" \
+  -e Ali_Key="${YOUR-Ali-Key}" \
+  -e Ali_Secret="${YOUR-Ali-Secret}" \
   neilpang/acme.sh --issue --log --dns dns_ali -d '*.aaa.com'
 
+# 安装证书 范域名
+docker run --rm  -it  \
+  -v "/docker/nginx/ssl":/acme.sh  \
+  neilpang/acme.sh acme.sh --installcert -d *.aaa.com --key-file /acme.sh/*.aaa.com.key --fullchain-file /acme.sh/*.aaa.com.fullchain.cer
+
+
+# TX DNSPod
+
+# 申请证书 TX DNSPod 主域名
+docker run --rm  -it  \
+  -v "/docker/nginx/ssl":/acme.sh  \
+  -e DP_Id="${YOUR-DP-ID}$" \
+  -e DP_Key="${YOUR-DP-KEY}" \
+  neilpang/acme.sh --issue --log --dns dns_dp -d 'aaa.com'
+
 # 安装证书
+docker run --rm  -it  \
+  -v "/docker/nginx/ssl":/acme.sh  \
+  neilpang/acme.sh acme.sh --installcert -d aaa.com --key-file /acme.sh/aaa.com.key --fullchain-file /acme.sh/aaa.com.fullchain.cer
+
+
+# 申请证书 范域名
+docker run --rm  -it  \
+  -v "/docker/nginx/ssl":/acme.sh  \
+  -e DP_Id="${YOUR-DP-ID}$" \
+  -e DP_Key="${YOUR-DP-KEY}" \
+  neilpang/acme.sh --issue --log --dns dns_dp -d 'aaa.com'
+  
+
+# 安装证书 范域名
 docker run --rm  -it  \
   -v "/docker/nginx/ssl":/acme.sh  \
   neilpang/acme.sh acme.sh --installcert -d *.aaa.com --key-file /acme.sh/*.aaa.com.key --fullchain-file /acme.sh/*.aaa.com.fullchain.cer
