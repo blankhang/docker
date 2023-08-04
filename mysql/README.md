@@ -28,3 +28,9 @@ docker exec mysql8 sh -c 'exec mysqldump --all-databases -uroot -p"bXnT5oJp79*nR
 # 恢复dump数据到 mysql 容器
 docker exec -i mysql8 sh -c 'exec mysql -uroot -p"bXnT5oJp79*nRoYfSYYo"' < /docker/mysql/all-databases.sql
 ```
+
+慢 SQL 查询
+
+https://aws.amazon.com/cn/blogs/china/pt-query-digest-rds-mysql-slow-searchnew/
+
+cat /docker/mysql/log/slow.log | docker run -i --rm matsuu/pt-query-digest > analyzed-slow.log
