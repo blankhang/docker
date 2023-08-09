@@ -12,7 +12,7 @@ docker run --rm  -it    -v "/docker/nginx/ssl":/acme.sh neilpang/acme.sh --regis
 假如你要申请的泛域名为`*.aaa.com`
 
 ALI
-aliyun AccessKey 获取  https://ram.console.aliyun.com/users/create 用户 AccessKey -> 创建AccessKey  记录AccessKey ID AliSecret
+aliyun AccessKey 获取  https://ram.console.aliyun.com/users/create 用户 AccessKey -> 创建AccessKey  记录AccessKey ID AliSecret  然后在权限管理tab页面新增 AliyunDNSFullAccess 权限即可
 ```shell
 ### 申请证书
 docker run --rm  -it    -v "/docker/nginx/ssl":/acme.sh    -e Ali_Key="YOUR ALI KEY"   -e Ali_Secret="YOUR ALI Secret"   neilpang/acme.sh --issue --log --dns dns_ali -d *.aaa.com
