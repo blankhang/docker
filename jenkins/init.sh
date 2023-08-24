@@ -49,6 +49,10 @@ services:
       interval: 1m
       timeout: 5s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.90'
 #    environment:
       #LANG: "zh_CN.UTF-8"
       #LANGUAGE: "zh_CN.UTF-8"

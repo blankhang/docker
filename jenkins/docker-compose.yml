@@ -16,7 +16,11 @@ services:
       interval: 1m
       timeout: 5s
       retries: 3
-
+    deploy:
+      resources:
+        limits:
+          # Recommended to limit on low performance servers
+          cpus: '0.90'
     ports:
       - '8080:8080'
     networks:
