@@ -15,6 +15,7 @@ env:
   IMAGE_NAME_OPENJDK8: blankhang/ubuntu2204:openjdk8 #这是您的镜像名
   IMAGE_NAME_OPENJDK11: blankhang/ubuntu2204:openjdk11 #这是您的镜像名
   IMAGE_NAME_OPENJDK17: blankhang/ubuntu2204:openjdk17 #这是您的镜像名
+  IMAGE_NAME_OPENJDK21: blankhang/ubuntu2204:openjdk21 #这是您的镜像名
 
 jobs:
 
@@ -83,6 +84,20 @@ jobs:
         cache-to: type=gha,mode=max
         push: true
         tags: ${{ env.IMAGE_NAME_OPENJDK17 }}
+
+    - name: Build openjdk21 and push
+      id: openjdk21_build
+      uses: docker/build-push-action@v4
+      with:
+        builder: ${{ steps.buildx.outputs.name }}
+        context: ./${{ env.IMAGE }}
+        file: ./${{ env.IMAGE }}/openjdk21/Dockerfile
+        platforms: linux/amd64,linux/arm/v7,linux/arm64
+        #,linux/ppc64le,linux/s390x
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        push: true
+        tags: ${{ env.IMAGE_NAME_OPENJDK21 }}
 
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
