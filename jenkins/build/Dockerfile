@@ -5,18 +5,19 @@ MAINTAINER blankhang@gmail.com
 USER root
 
 # install docker cli
-RUN apt-get -y update; apt-get install -y sudo; apt-get install -y git wget \
+RUN apt -y update; apt install -y sudo; apt install -y git wget \
   && echo "jenkins ALL=NOPASSWD: ALL" >> /etc/sudoers \
   && wget http://get.docker.com/builds/Linux/x86_64/docker-latest.tgz \
   && tar -xvzf docker-latest.tgz \
   && mv docker/docker /usr/local/bin \
   && rm -rf docker docker-latest.tgz
 
-# update system and install chinese language support and maven nodejs
-RUN apt-get update && apt-get install -y locales locales-all maven nodejs \
+# update system and install chinese language support and maven nodejs npm
+RUN apt update && apt install -y locales locales-all maven nodejs npm  \
     && sed -i '/^#.* zh_CN.UTF-8 /s/^#//' /etc/locale.gen \
     && locale-gen \
     && rm -rf /var/lib/apt/lists/* \
+    && npm install -g yarn pnpm
 
 # Setting Default Chinese Language and UTC+8 timezone
 #ENV LANG C.UTF-8
