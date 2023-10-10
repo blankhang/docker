@@ -46,7 +46,7 @@ RUN set -o errexit -o nounset \
     && echo "Install cmdline-tools" \
     && unzip cmdline-tools.zip \
     && rm cmdline-tools.zip \
-    && mv "cmdline-tools-${ANDROID_VERSION}" "${ANDROID_HOME}/" \
+    && mv "cmdline-tools" "${ANDROID_HOME}/" \
     && ln --symbolic "${ANDROID_HOME}/bin/apkanalyzer" /usr/bin/apkanalyzer \
     && ln --symbolic "${ANDROID_HOME}/bin/lint" /usr/bin/lint \
     && ln --symbolic "${ANDROID_HOME}/bin/profgen" /usr/bin/profgen \
