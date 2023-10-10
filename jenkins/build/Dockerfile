@@ -8,8 +8,7 @@ ENV GRADLE_VERSION=7.6.3
 ENV GRADLE_USER_HOME /.gradle
 ENV GRADLE_HOME=/opt/gradle
 
-ENV ANDROID_VERSION=linux-10406996_latest
-ENV ANDROID_HOME=/opt/android-cmdline-tools
+ENV ANDROID_HOME=/usr/lib/android-sdk/
 
 # install docker cli
 RUN apt -y update; apt install -y sudo; apt install -y --no-install-recommends git wget \
@@ -20,12 +19,15 @@ RUN apt -y update; apt install -y sudo; apt install -y --no-install-recommends g
   && rm -rf docker docker-latest.tgz \
   && rm -rf /var/lib/apt/lists/*
 
-# install chinese language support and maven nodejs npm yarn pnpm android-sdk-build-tools
-RUN apt update && apt install -y --no-install-recommends locales fontconfig maven nodejs npm android-sdk-build-tools \
+# install chinese language support and maven nodejs npm yarn pnpm
+RUN apt update && apt install -y --no-install-recommends locales fontconfig maven nodejs npm \
     && echo "zh_CN.UTF-8 UTF-8" >> /etc/locale.gen \
     && locale-gen zh_CN.UTF-8 \
     && rm -rf /var/lib/apt/lists/* \
     && npm install -g yarn pnpm
+
+
+#./sdkmanager --licenses --sdk_root=/home/jenkins/Android/android-sdk-linux/
 
 ## install gradle
 #RUN set -o errexit -o nounset \
