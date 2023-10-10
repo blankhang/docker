@@ -35,7 +35,7 @@ RUN set -o errexit -o nounset \
 	&& unzip gradle.zip \
 	&& rm gradle.zip \
 	&& mv "gradle-${GRADLE_VERSION}" "${GRADLE_HOME}/" \
-	&& ln --symbolic "${GRADLE_HOME}/bin/gradle" /usr/bin/gradle \
+	&& ln -s "${GRADLE_HOME}/bin/gradle" /usr/bin/gradle \
 	&& echo "Testing Gradle installation" \
 	&& gradle --version
 
@@ -47,17 +47,18 @@ RUN set -o errexit -o nounset \
     && unzip cmdline-tools.zip \
     && rm cmdline-tools.zip \
     && mv "cmdline-tools" "${ANDROID_HOME}/" \
-    && ln --symbolic "${ANDROID_HOME}/bin/apkanalyzer" /usr/bin/apkanalyzer \
-    && ln --symbolic "${ANDROID_HOME}/bin/lint" /usr/bin/lint \
-    && ln --symbolic "${ANDROID_HOME}/bin/profgen" /usr/bin/profgen \
-    && ln --symbolic "${ANDROID_HOME}/bin/resourceshrinker" /usr/bin/resourceshrinker \
-    && ln --symbolic "${ANDROID_HOME}/bin/retrace" /usr/bin/retrace \
-    && ln --symbolic "${ANDROID_HOME}/bin/screenshot2" /usr/bin/screenshot2 \
-    && ln --symbolic "${ANDROID_HOME}/bin/sdkmanager" /usr/bin/sdkmanager \
+    && ln -s "${ANDROID_HOME}/bin/apkanalyzer" /usr/bin/apkanalyzer \
+    && ln -s "${ANDROID_HOME}/bin/lint" /usr/bin/lint \
+    && ln -s "${ANDROID_HOME}/bin/profgen" /usr/bin/profgen \
+    && ln -s "${ANDROID_HOME}/bin/resourceshrinker" /usr/bin/resourceshrinker \
+    && ln -s "${ANDROID_HOME}/bin/retrace" /usr/bin/retrace \
+    && ln -s "${ANDROID_HOME}/bin/screenshot2" /usr/bin/screenshot2 \
+    && ln -s "${ANDROID_HOME}/bin/sdkmanager" /usr/bin/sdkmanager \
 
 
 # .gradle and .android are a cache folders
-RUN mkdir -p ${GRADLE_USER_HOME}/caches /.android \
+RUN mkdir ${GRADLE_USER_HOME}/caches  \
+    && mkdir /.android \
 	&& chmod -R 777 ${GRADLE_USER_HOME} \
 	&& chmod 777 /.android
 
