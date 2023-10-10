@@ -21,7 +21,7 @@ RUN apt -y update; apt install -y sudo; apt install -y --no-install-recommends g
   && rm -rf /var/lib/apt/lists/*
 
 # install chinese language support and maven nodejs npm
-RUN  apt install -y --no-install-recommends locales locales-all maven gradle nodejs npm \
+RUN  apt install -y --no-install-recommends locales locales-all maven nodejs npm \
     && echo "zh_CN.UTF-8 UTF-8" >> /etc/locale.gen \
     && locale-gen \
     && rm -rf /var/lib/apt/lists/* \
