@@ -1,5 +1,5 @@
 # https://github.com/jenkinsci/docker/blob/master/README.md
-FROM jenkins/jenkins:lts
+FROM jenkins/jenkins:lts-jdk17
 MAINTAINER blankhang@gmail.com
 
 USER root
