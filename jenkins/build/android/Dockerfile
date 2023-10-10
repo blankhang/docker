@@ -7,7 +7,7 @@ LABEL maintainer="blankhang@gmail.com"
 ENV ANDROID_SDK_ZIP commandlinetools-linux-10406996_latest.zip
 ENV ANDROID_SDK_ZIP_URL https://dl.google.com/android/repository/$ANDROID_SDK_ZIP
 ENV ANDROID_PLATFORM_ZIP platform-tools_r34.0.4-linux.zip
-ENV ANDROID_PLATFORM_ZIP_URL /https://dl.google.com/android/repository/$ANDROID_PLATFORM_ZIP
+ENV ANDROID_PLATFORM_ZIP_URL https://dl.google.com/android/repository/$ANDROID_PLATFORM_ZIP
 
 ENV ANDROID_HOME /opt/android-sdk-linux
 ENV ANDROID_SDK_ROOT /opt/android-sdk-linux
