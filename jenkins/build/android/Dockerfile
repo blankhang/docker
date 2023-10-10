@@ -31,12 +31,14 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
 
 USER root
 
-## Install Docker-ce into Image
-RUN curl -fsSL https://download.docker.com/linux/$(. /etc/os-release; echo "$ID")/gpg > /tmp/dkey;
-RUN apt-key add /tmp/dkey
-RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") $(lsb_release -cs) stable"
-RUN apt-get update && apt-get install docker-ce -y --no-install-recommends
-RUN usermod -a -G docker jenkins
+# install docker cli
+RUN apt -y update; apt install -y sudo; apt install -y --no-install-recommends git wget \
+  && echo "jenkins ALL=NOPASSWD: ALL" >> /etc/sudoers \
+  && wget http://get.docker.com/builds/Linux/x86_64/docker-latest.tgz \
+  && tar -xvzf docker-latest.tgz \
+  && mv docker/docker /usr/local/bin \
+  && rm -rf docker docker-latest.tgz \
+  && rm -rf /var/lib/apt/lists/*
 
 # install chinese language support and maven nodejs npm yarn pnpm
 RUN apt update && apt install -y --no-install-recommends locales fontconfig maven nodejs npm \
