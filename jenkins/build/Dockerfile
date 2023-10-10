@@ -21,9 +21,9 @@ RUN apt -y update; apt install -y sudo; apt install -y --no-install-recommends g
   && rm -rf /var/lib/apt/lists/*
 
 # install chinese language support and maven nodejs npm
-RUN  apt install -y --no-install-recommends locales fontconfig maven gradle nodejs npm  \
+RUN  apt install -y --no-install-recommends locales locales-all maven gradle nodejs npm \
     && echo "zh_CN.UTF-8 UTF-8" >> /etc/locale.gen \
-    && locale-gen zh_CN.UTF-8 \
+    && locale-gen \
     && rm -rf /var/lib/apt/lists/* \
     && npm install -g yarn pnpm
 
@@ -50,7 +50,6 @@ RUN set -o errexit -o nounset \
     && ln --symbolic "${ANDROID_HOME}/bin/lint" /usr/bin/lint \
     && ln --symbolic "${ANDROID_HOME}/bin/profgen" /usr/bin/profgen \
     && ln --symbolic "${ANDROID_HOME}/bin/resourceshrinker" /usr/bin/resourceshrinker \
-    && ln --symbolic "${ANDROID_HOME}/bin/retrace" /usr/bin/retrace \
     && ln --symbolic "${ANDROID_HOME}/bin/retrace" /usr/bin/retrace \
     && ln --symbolic "${ANDROID_HOME}/bin/screenshot2" /usr/bin/screenshot2 \
     && ln --symbolic "${ANDROID_HOME}/bin/sdkmanager" /usr/bin/sdkmanager \
