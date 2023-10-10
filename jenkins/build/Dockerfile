@@ -39,7 +39,6 @@ RUN set -o errexit -o nounset \
 	&& echo "Testing Gradle installation" \
 	&& gradle --version
 
-
 # .gradle and .android are a cache folders
 RUN mkdir -p ${GRADLE_USER_HOME}/caches /.android  \
 	&& chmod -R 777 ${GRADLE_USER_HOME} \
@@ -52,17 +51,14 @@ RUN set -o errexit -o nounset \
     && echo "Install cmdline-tools" \
     && unzip cmdline-tools.zip \
     && rm cmdline-tools.zip \
-    && mv "cmdline-tools" "${ANDROID_HOME}/" \
-    && ln -s "${ANDROID_HOME}/bin/apkanalyzer" /usr/bin/apkanalyzer \
-    && ln -s "${ANDROID_HOME}/bin/lint" /usr/bin/lint \
-    && ln -s "${ANDROID_HOME}/bin/profgen" /usr/bin/profgen \
-    && ln -s "${ANDROID_HOME}/bin/resourceshrinker" /usr/bin/resourceshrinker \
-    && ln -s "${ANDROID_HOME}/bin/retrace" /usr/bin/retrace \
-    && ln -s "${ANDROID_HOME}/bin/screenshot2" /usr/bin/screenshot2 \
-    && ln -s "${ANDROID_HOME}/bin/sdkmanager" /usr/bin/sdkmanager \
-
-
-
+    && mv cmdline-tools ${ANDROID_HOME}/ \
+    && ln -s ${ANDROID_HOME}/bin/apkanalyzer /usr/bin/apkanalyzer \
+    && ln -s ${ANDROID_HOME}/bin/lint /usr/bin/lint \
+    && ln -s ${ANDROID_HOME}/bin/profgen /usr/bin/profgen \
+    && ln -s ${ANDROID_HOME}/bin/resourceshrinker /usr/bin/resourceshrinker \
+    && ln -s ${ANDROID_HOME}/bin/retrace /usr/bin/retrace \
+    && ln -s ${ANDROID_HOME}/bin/screenshot2 /usr/bin/screenshot2 \
+    && ln -s ${ANDROID_HOME}/bin/sdkmanager /usr/bin/sdkmanager
 
 # Setting Default Chinese Language and UTC+8 timezone
 ENV LANG zh_CN.UTF-8
