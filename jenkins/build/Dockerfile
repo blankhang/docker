@@ -20,9 +20,9 @@ RUN apt -y update; apt install -y sudo; apt install -y --no-install-recommends g
   && rm -rf docker docker-latest.tgz \
   && rm -rf /var/lib/apt/lists/*
 
-# install chinese language support and maven nodejs npm
+# install chinese language support and maven nodejs npm yarn pnpm
 RUN  apt install -y --no-install-recommends locales locales-all maven nodejs npm \
-    && echo "zh_CN.UTF-8 UTF-8" >> /etc/locale.gen \
+    && sed -i '/^#.* zh_CN.UTF-8 /s/^#//' /etc/locale.gen \
     && locale-gen \
     && rm -rf /var/lib/apt/lists/* \
     && npm install -g yarn pnpm
@@ -39,6 +39,7 @@ RUN set -o errexit -o nounset \
 	&& echo "Testing Gradle installation" \
 	&& gradle --version
 
+# install android comline-tools
 RUN set -o errexit -o nounset \
     && echo "Downloading cmdline-tools" \
     && curl -Lo cmdline-tools.zip https://googledownloads.cn/android/repository/commandlinetools-${ANDROID_VERSION}.zip \
