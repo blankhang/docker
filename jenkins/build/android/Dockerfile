@@ -34,15 +34,6 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
 
 USER root
 
-# install docker cli
-RUN apt -y update; apt install -y sudo; apt install -y --no-install-recommends git wget \
-  && echo "jenkins ALL=NOPASSWD: ALL" >> /etc/sudoers \
-  && wget http://get.docker.com/builds/Linux/x86_64/docker-latest.tgz \
-  && tar -xvzf docker-latest.tgz \
-  && mv docker/docker /usr/local/bin \
-  && rm -rf docker docker-latest.tgz \
-  && rm -rf /var/lib/apt/lists/*
-
 # install chinese language support and maven nodejs npm yarn pnpm
 RUN apt update && apt install -y --no-install-recommends locales fontconfig maven nodejs npm \
     && echo "zh_CN.UTF-8 UTF-8" >> /etc/locale.gen \
@@ -54,6 +45,12 @@ RUN apt update && apt install -y --no-install-recommends locales fontconfig mave
 RUN dpkg --add-architecture i386
 RUN rm -rf /var/lib/apt/list/* && apt-get update && apt-get install ca-certificates curl gnupg2 software-properties-common git unzip file apt-utils lxc apt-transport-https libc6:i386 libncurses5:i386 libstdc++6:i386 zlib1g:i386 -y
 
+## Install Docker-ce into Image
+RUN curl -fsSL https://download.docker.com/linux/$(. /etc/os-release; echo "$ID")/gpg > /tmp/dkey;
+RUN apt-key add /tmp/dkey
+RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") $(lsb_release -cs) stable"
+RUN apt-get update && apt-get install docker-ce -y --no-install-recommends
+RUN usermod -a -G docker jenkins
 
 ## Install Android SDK into Image
 ADD $GRADLE_ZIP_URL /opt/
@@ -65,12 +62,12 @@ RUN unzip -q /opt/$ANDROID_SDK_ZIP -d $ANDROID_SDK_ROOT && rm /opt/$ANDROID_SDK_
 ADD $ANDROID_PLATFORM_ZIP_URL /opt/
 RUN unzip -q /opt/$ANDROID_PLATFORM_ZIP -d $ANDROID_SDK_ROOT && rm /opt/$ANDROID_PLATFORM_ZIP
 
+FRUN echo $path
+
 RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;34.0.0"
 RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-34"
 RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;33.0.2"
 RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-33"
-RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;32.1.0"
-RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-32"
 
 RUN chown -R jenkins $ANDROID_SDK_ROOT
 
