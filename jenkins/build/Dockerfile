@@ -39,6 +39,12 @@ RUN set -o errexit -o nounset \
 	&& echo "Testing Gradle installation" \
 	&& gradle --version
 
+
+# .gradle and .android are a cache folders
+RUN mkdir -p ${GRADLE_USER_HOME}/caches /.android  \
+	&& chmod -R 777 ${GRADLE_USER_HOME} \
+	&& chmod 777 /.android
+
 # install android comline-tools
 RUN set -o errexit -o nounset \
     && echo "Downloading cmdline-tools" \
@@ -56,11 +62,7 @@ RUN set -o errexit -o nounset \
     && ln -s "${ANDROID_HOME}/bin/sdkmanager" /usr/bin/sdkmanager \
 
 
-# .gradle and .android are a cache folders
-RUN mkdir ${GRADLE_USER_HOME}/caches  \
-    && mkdir /.android \
-	&& chmod -R 777 ${GRADLE_USER_HOME} \
-	&& chmod 777 /.android
+
 
 # Setting Default Chinese Language and UTC+8 timezone
 ENV LANG zh_CN.UTF-8
