@@ -9,7 +9,7 @@ ENV GRADLE_USER_HOME /.gradle
 ENV GRADLE_HOME=/opt/gradle
 
 ENV ANDROID_VERSION=linux-10406996_latest
-ENV ANDROID_HOME=/opt/android/cmdline-tools
+ENV ANDROID_HOME=/opt/android-cmdline-tools
 
 # install docker cli
 RUN apt -y update; apt install -y sudo; apt install -y --no-install-recommends git wget \
