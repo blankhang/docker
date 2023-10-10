@@ -4,7 +4,7 @@ MAINTAINER blankhang@gmail.com
 
 USER root
 
-ENV GRADLE_VERSION=7.6.3
+ENV GRADLE_VERSION=8.0
 ENV GRADLE_USER_HOME /.gradle
 ENV GRADLE_HOME=/opt/gradle
 
