@@ -62,7 +62,7 @@ RUN unzip -q /opt/$ANDROID_SDK_ZIP -d $ANDROID_SDK_ROOT && rm /opt/$ANDROID_SDK_
 ADD $ANDROID_PLATFORM_ZIP_URL /opt/
 RUN unzip -q /opt/$ANDROID_PLATFORM_ZIP -d $ANDROID_SDK_ROOT && rm /opt/$ANDROID_PLATFORM_ZIP
 
-FRUN echo $path
+RUN echo "$path"
 
 RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;34.0.0"
 RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-34"
