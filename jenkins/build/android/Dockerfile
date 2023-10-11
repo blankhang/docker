@@ -63,9 +63,12 @@ ADD $ANDROID_PLATFORM_ZIP_URL /opt/
 RUN unzip -q /opt/$ANDROID_PLATFORM_ZIP -d $ANDROID_SDK_ROOT && rm /opt/$ANDROID_PLATFORM_ZIP
 
 RUN echo "$PATH"
+RUN echo ls -a /opt/android-sdk-linux/
+RUN echo ls -a /opt/android-sdk-linux/tools
+RUN echo ls -a /opt/android-sdk-linux/tools/bin
 
-RUN echo yes |  ${ANDROID_SDK_ROOT}/tools/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;34.0.0"
-RUN echo yes |  ${ANDROID_SDK_ROOT}/tools/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-34"
+RUN echo yes |  /opt/android-sdk-linux/tools/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;34.0.0"
+RUN echo yes |  /opt/android-sdk-linux/tools/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-34"
 
 RUN echo "TEST 1 Done"
 
