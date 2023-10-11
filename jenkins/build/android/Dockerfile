@@ -15,8 +15,8 @@ ENV ANDROID_SDK_ROOT /opt/android-sdk-linux
 ENV GRADLE_ZIP gradle-7.6.3-bin.zip
 ENV GRADLE_ZIP_URL https://services.gradle.org/distributions/$GRADLE_ZIP
 
-ENV PATH $PATH:$ANDROID_SDK_ROOT/tools/bin
-ENV PATH $PATH:$ANDROID_SDK_ROOT/platform-tools
+ENV PATH $PATH:$ANDROID_SDK_ROOT/cmdline-tools/bin
+ENV PATH $PATH:$ANDROID_SDK_ROOT/platform-tools/bin
 ENV PATH $PATH:/opt/gradle-7.6.3/bin
 
 # Build-time metadata as defined at http://label-schema.org
@@ -64,19 +64,19 @@ RUN unzip -q /opt/$ANDROID_PLATFORM_ZIP -d $ANDROID_SDK_ROOT && rm /opt/$ANDROID
 
 RUN echo "$PATH"
 RUN echo ls -a /opt/android-sdk-linux/
-RUN echo ls -a /opt/android-sdk-linux/tools
-RUN echo ls -a /opt/android-sdk-linux/tools/bin
+RUN echo ls -a /opt/android-sdk-linux/cmdline-tools
+RUN echo ls -a /opt/android-sdk-linux/cmdline-tools/bin
 
-RUN echo yes |  /opt/android-sdk-linux/tools/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;34.0.0"
-RUN echo yes |  /opt/android-sdk-linux/tools/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-34"
+#RUN echo yes |  /opt/android-sdk-linux/cmdline-tools/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;34.0.0"
+#RUN echo yes |  /opt/android-sdk-linux/cmdline-tools/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-34"
 
-RUN echo "TEST 1 Done"
+#RUN echo "TEST 1 Done"
 
 
-#RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;34.0.0"
-#RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-34"
-#RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;33.0.2"
-#RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-33"
+RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;34.0.0"
+RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-34"
+RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;33.0.2"
+RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-33"
 
 RUN chown -R jenkins $ANDROID_SDK_ROOT
 
