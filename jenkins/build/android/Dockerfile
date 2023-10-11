@@ -79,8 +79,7 @@ USER jenkins
 
 RUN jenkins-plugin-cli --plugins git gradle android-emulator ws-cleanup embeddable-build-status blueocean locale ssh-steps pipeline-utility-steps pipeline-maven-api
 
-# Setting Default Chinese Language and UTC+8 timezone
-ENV LANG zh_CN.UTF-8
-ENV LANGUAGE zh_CN.UTF-8
-ENV LC_ALL zh_CN.UTF-8
+# Setting UTC+8 timezone
 ENV TZ Asia/Shanghai
+
+RUN ln -snf /usr/share/zoneinfo/"${TZ}" /etc/localtime && echo "${TZ}" > /etc/timezone && dpkg-reconfigure -f noninteractive tzdata
