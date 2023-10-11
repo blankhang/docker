@@ -27,6 +27,7 @@ services:
       - default
     volumes:
       - '/app:/app'
+      - '/etc/localtime:/etc/localtime'
       - '/docker/jenkins/jenkins_home:/var/jenkins_home'
       - '/etc/localtime:/etc/localtime:ro'
       - '/var/run/docker.sock:/var/run/docker.sock'
