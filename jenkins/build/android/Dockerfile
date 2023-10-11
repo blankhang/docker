@@ -27,7 +27,7 @@ ARG VCS_REF
 ARG VERSION
 LABEL org.label-schema.build-date=$BUILD_DATE \
           org.label-schema.name="Jenkins-Android-Docker" \
-          org.label-schema.description="Docker image for Jenkins with Android " \
+          org.label-schema.description="Docker image for Jenkins with Android and maven nodejs npm yarn pnpm and GMT+08 setting " \
           org.label-schema.vcs-ref=$VCS_REF \
           org.label-schema.vcs-url="https://github.com/blankhang/docker/jenkins" \
           org.label-schema.vendor="blankhang" \
@@ -68,10 +68,6 @@ RUN echo "$PATH"
 
 RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;34.0.0"
 RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-34"
-RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;33.0.2"
-RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-33"
-RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;30.0.3"
-RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-30"
 
 RUN chown -R jenkins "$ANDROID_SDK_ROOT"
 
