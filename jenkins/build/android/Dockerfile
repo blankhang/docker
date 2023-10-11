@@ -21,11 +21,6 @@ ENV PATH $PATH:$ANDROID_SDK_ROOT/cmdline-tools/bin
 ENV PATH $PATH:$ANDROID_SDK_ROOT/platform-tools/bin
 ENV PATH $PATH:/opt/gradle-7.6.3/bin
 
-# Setting UTC+8 timezone
-ENV TZ Asia/Shanghai
-
-RUN ln -snf /usr/share/zoneinfo/"${TZ}" /etc/localtime && echo "${TZ}" > /etc/timezone && dpkg-reconfigure -f noninteractive tzdata
-
 # Build-time metadata as defined at http://label-schema.org
 ARG BUILD_DATE
 ARG VCS_REF
@@ -40,6 +35,11 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
           org.label-schema.schema-version="1.0"
 
 USER root
+
+# Setting UTC+8 timezone
+ENV TZ Asia/Shanghai
+
+RUN ln -snf /usr/share/zoneinfo/"${TZ}" /etc/localtime && echo "${TZ}" > /etc/timezone && dpkg-reconfigure -f noninteractive tzdata
 
 # install chinese language support and maven nodejs npm yarn pnpm
 RUN apt update && apt install -y --no-install-recommends locales fontconfig maven nodejs npm \
