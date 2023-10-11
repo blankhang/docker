@@ -1,6 +1,8 @@
 ## Based Image
 FROM jenkins/jenkins:lts-jdk17
 
+## Thanks to https://github.com/WindSekirun/Jenkins-Android-Docker/blob/master/Dockerfile
+
 ## Define Environment
 LABEL maintainer="blankhang@gmail.com"
 
@@ -36,20 +38,20 @@ USER root
 
 # install chinese language support and maven nodejs npm yarn pnpm
 RUN apt update && apt install -y --no-install-recommends locales fontconfig maven nodejs npm \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* \
     && echo "zh_CN.UTF-8 UTF-8" >> /etc/locale.gen \
     && locale-gen zh_CN.UTF-8 \
-    && rm -rf /var/lib/apt/lists/* \
     && npm install -g yarn pnpm
 
 ## Install requirements
 RUN dpkg --add-architecture i386
-RUN rm -rf /var/lib/apt/list/* && apt-get update && apt-get install ca-certificates curl gnupg2 software-properties-common git unzip file apt-utils lxc apt-transport-https libc6:i386 libncurses5:i386 libstdc++6:i386 zlib1g:i386 -y
+RUN rm -rf /var/lib/apt/list/* && apt-get update && apt-get install ca-certificates curl gnupg2 software-properties-common git unzip file apt-utils lxc apt-transport-https libc6:i386 libncurses5:i386 libstdc++6:i386 zlib1g:i386 -y && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 ## Install Docker-ce into Image
-RUN curl -fsSL https://download.docker.com/linux/$(. /etc/os-release; echo "$ID")/gpg > /tmp/dkey;
+RUN curl -fsSL https://download.docker.com/linux/$(. /etc/os-release; echo "${ID}")/gpg > /tmp/dkey;
 RUN apt-key add /tmp/dkey
-RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") $(lsb_release -cs) stable"
-RUN apt-get update && apt-get install docker-ce -y --no-install-recommends
+RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/$(. /etc/os-release; echo "${ID}") $(lsb_release -cs) stable"
+RUN apt-get update && apt-get install docker-ce -y --no-install-recommends && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 RUN usermod -a -G docker jenkins
 
 ## Install Android SDK into Image
@@ -63,27 +65,18 @@ ADD $ANDROID_PLATFORM_ZIP_URL /opt/
 RUN unzip -q /opt/$ANDROID_PLATFORM_ZIP -d $ANDROID_SDK_ROOT && rm /opt/$ANDROID_PLATFORM_ZIP
 
 RUN echo "$PATH"
-RUN echo ls -a /opt/android-sdk-linux/
-RUN echo ls -a /opt/android-sdk-linux/cmdline-tools
-RUN echo ls -a /opt/android-sdk-linux/cmdline-tools/bin
-
-#RUN echo yes |  /opt/android-sdk-linux/cmdline-tools/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;34.0.0"
-#RUN echo yes |  /opt/android-sdk-linux/cmdline-tools/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-34"
-
-#RUN echo "TEST 1 Done"
-
 
 RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;34.0.0"
 RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-34"
 RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;33.0.2"
 RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-33"
 
-RUN chown -R jenkins $ANDROID_SDK_ROOT
+RUN chown -R jenkins "$ANDROID_SDK_ROOT"
 
 RUN apt-get clean
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /tmp/* /var/tmp/*
 
 ## Install Jenkins plugin
 USER jenkins
 
-RUN /usr/local/bin/install-plugins.sh git gradle android-emulator ws-cleanup embeddable-build-status blueocean locale ssh-steps pipeline-utility-steps pipeline-maven-api
+RUN jenkins-plugin-cli --plugins git gradle android-emulator ws-cleanup embeddable-build-status blueocean locale ssh-steps pipeline-utility-steps pipeline-maven-api
