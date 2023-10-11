@@ -62,7 +62,7 @@ RUN unzip -q /opt/$ANDROID_SDK_ZIP -d $ANDROID_SDK_ROOT && rm /opt/$ANDROID_SDK_
 ADD $ANDROID_PLATFORM_ZIP_URL /opt/
 RUN unzip -q /opt/$ANDROID_PLATFORM_ZIP -d $ANDROID_SDK_ROOT && rm /opt/$ANDROID_PLATFORM_ZIP
 
-RUN echo "$path"
+RUN echo "$PATH"
 
 RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "build-tools;34.0.0"
 RUN echo yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platform-tools" "platforms;android-34"
@@ -77,4 +77,4 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 ## Install Jenkins plugin
 USER jenkins
 
-RUN /usr/local/bin/install-plugins.sh git gradle android-emulator ws-cleanup slack embeddable-build-status blueocean github-coverage-reporter jacoco github-pr-coverage-status locale
+RUN /usr/local/bin/install-plugins.sh git gradle android-emulator ws-cleanup embeddable-build-status blueocean locale ssh-steps pipeline-utility-steps pipeline-maven-api
