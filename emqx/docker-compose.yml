@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   emqx:
+    user: root
     hostname: emqx
     image: emqx/emqx
     environment:
@@ -15,7 +16,7 @@ services:
       retries: 3
     volumes:
       - ./emqx_data/data:/opt/emqx/data
-      - ./emqx_data/etc:/opt/emqx/etc
+      #- ./emqx_data/etc:/opt/emqx/etc
       - ./emqx_data/log:/opt/emqx/log
     ports:
       - "1883:1883"
