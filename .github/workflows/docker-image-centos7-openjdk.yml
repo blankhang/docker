@@ -15,6 +15,7 @@ env:
   IMAGE_NAME_OPENJDK8: blankhang/centos7:openjdk8 #这是您的镜像名
   IMAGE_NAME_OPENJDK11: blankhang/centos7:openjdk11 #这是您的镜像名
   IMAGE_NAME_OPENJDK17: blankhang/centos7:openjdk17 #这是您的镜像名
+  IMAGE_NAME_OPENJDK21: blankhang/centos7:openjdk21 #这是您的镜像名
 
 jobs:
 
