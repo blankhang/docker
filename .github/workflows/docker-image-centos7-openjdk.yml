@@ -71,7 +71,7 @@ jobs:
         tags: ${{ env.IMAGE_NAME_OPENJDK11 }}
 
     - name: Build openjdk17 and push
-      id: openjdk17_amd64_build
+      id: openjdk17_build
       uses: docker/build-push-action@v4
       with:
         builder: ${{ steps.buildx.outputs.name }}
@@ -82,6 +82,19 @@ jobs:
         cache-to: type=gha,mode=max
         push: true
         tags: ${{ env.IMAGE_NAME_OPENJDK17 }}
+
+    - name: Build openjdk21 and push
+      id: openjdk21_build
+      uses: docker/build-push-action@v4
+      with:
+        builder: ${{ steps.buildx.outputs.name }}
+        context: ./${{ env.IMAGE }}
+        file: ./${{ env.IMAGE }}/openjdk21/Dockerfile
+        platforms: linux/amd64,linux/arm64
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        push: true
+        tags: ${{ env.IMAGE_NAME_OPENJDK21 }}
 
 
     - name: Image digest
