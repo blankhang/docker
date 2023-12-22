@@ -15,6 +15,7 @@ env:
   IMAGE_NAME_OPENJDK8: blankhang/alpine318:openjdk8 #这是您的镜像名
   IMAGE_NAME_OPENJDK11: blankhang/alpine318:openjdk11 #这是您的镜像名
   IMAGE_NAME_OPENJDK17: blankhang/alpine318:openjdk17 #这是您的镜像名
+  IMAGE_NAME_OPENJDK21: blankhang/alpine318:openjdk21 #这是您的镜像名
 
 jobs:
 
