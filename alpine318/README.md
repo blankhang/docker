@@ -12,12 +12,12 @@ source code at https://github.com/blankhang/docker/tree/master/alpine318
 # alpine3.18 底包
 docker pull blankhnag/alpine318
 
-# centos7 + openjdk17
+# alpine3.18 + openjdk17
 docker pull blankhang/alpine318:openjdk17
 
-# centos7 + openjdk11
+# alpine3.18 + openjdk11
 docker pull blankhang/alpine318:openjdk11
 
-# centos7 + openjdk8 强烈建议升级到 17 或 11 , 8 太旧了
+# alpine3.18 + openjdk8 强烈建议升级到 17 或 11 , 8 太旧了
 docker pull blankhang/alpine318:openjdk8
 ```
