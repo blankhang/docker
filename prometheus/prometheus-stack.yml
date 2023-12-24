@@ -65,7 +65,10 @@ services:
     #  - DATA_SOURCE_NAME="root:root@(192.168.50.11:3306)/"
     volumes:
       - /docker/docker-stack/prometheus/configs/mysql-exporter/my.cnf:/.my.cnf
-    command: --config.my-cnf=/.my.cnf
+    command: 
+     - "config.my-cnf=/.my.cnf"
+     - "--mysqld.username=user:password"
+     - "--mysqld.address=host:port"
     depends_on:
       - alertmanager
     ports:
