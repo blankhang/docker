@@ -42,7 +42,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build and push
-      id: docker_build
+      id: openjdk17_build
       uses: docker/build-push-action@v4
       with:
         builder: ${{ steps.buildx.outputs.name }}
@@ -57,7 +57,7 @@ jobs:
         tags: ${{ env.IMAGE_NAME }}:latest
 
     - name: Build openjdk-21 and push
-      id: docker_build
+      id: openjdk21_build
       uses: docker/build-push-action@v4
       with:
         builder: ${{ steps.buildx.outputs.name }}
