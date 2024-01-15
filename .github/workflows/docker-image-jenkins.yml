@@ -54,7 +54,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         push: true
-        tags: ${{ env.IMAGE_NAME }}:latest
+        tags: ${{ env.IMAGE_NAME }}
 
     - name: Build openjdk-21 and push
       id: openjdk21_build
@@ -69,7 +69,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         push: true
-        tags: ${{ env.IMAGE_JDK_21_NAME }}:latest
+        tags: ${{ env.IMAGE_JDK_21_NAME }}
 
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
