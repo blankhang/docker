@@ -13,7 +13,8 @@ on:
 env:
   IMAGE: jenkins # 镜像
   IMAGE_NAME: blankhang/jenkins #这是您的镜像名
-  
+  IMAGE_JDK_21_NAME: blankhang/jenkins:lts-21 #这是您的镜像名
+
 jobs:
 
   build:
@@ -68,7 +69,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         push: true
-        tags: ${{ env.IMAGE_NAME }}:latest
+        tags: ${{ env.IMAGE_JDK_21_NAME }}:latest
 
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
