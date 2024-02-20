@@ -47,7 +47,7 @@ jobs:
       with:
         builder: ${{ steps.buildx.outputs.name }}
         context: ./${{ env.IMAGE }}/build
-        file: ./${{ env.IMAGE }}/build/android/Dockerfile
+        file: ./${{ env.IMAGE }}/build/android/jdk17.Dockerfile
         platforms: linux/amd64
 #        ,linux/arm64
         #,linux/ppc64le,linux/s390x
@@ -62,7 +62,7 @@ jobs:
       with:
         builder: ${{ steps.buildx.outputs.name }}
         context: ./${{ env.IMAGE }}/build
-        file: ./${{ env.IMAGE }}/build/android/Dockerfile.jdk21
+        file: ./${{ env.IMAGE }}/build/android/jdk21.Dockerfile
         platforms: linux/amd64
         #        ,linux/arm64
         #,linux/ppc64le,linux/s390x
