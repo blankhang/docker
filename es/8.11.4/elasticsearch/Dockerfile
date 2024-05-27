@@ -3,9 +3,9 @@
 # Example: RUN elasticsearch-plugin install analysis-icu
 
 
-FROM elasticsearch:${ELK_VERSION} AS Baseline
+FROM elasticsearch:8.11.4 AS Baseline
 
-FROM eclipse-temurin:20.0.1_9-jdk
+FROM eclipse-temurin:21-jdk
 
 
 ARG VERSION
