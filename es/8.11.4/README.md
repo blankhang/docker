@@ -11,10 +11,17 @@ sudo chmod -R 777 data-*
 docker-compose up -d
 
 
-# change password run
+#  run 
 docker exec -it [your elasticsearch docker name] bash
 
-# then run to config your es/logstash/kibana/etc... password
+# install analysis-ik plugin
+mkdir -p /tmp/ik && \
+    cd /tmp/ik && \
+    curl -L -o ik.zip https://release.infinilabs.com/analysis-ik/stable/elasticsearch-analysis-ik-8.11.4.zip && \
+    unzip ik.zip -d /usr/share/elasticsearch/plugins/ik && \
+    rm ik.zip
+
+# run to config your es/logstash/kibana/etc... password
 /usr/share/elasticsearch/bin/elasticsearch-setup-passwords interactive
 
 # or run to just config only kibana_system's password
