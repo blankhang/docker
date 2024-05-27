@@ -15,11 +15,11 @@ ENV VERSION=${ELK_VERSION}
 
 WORKDIR /crack
 
-COPY --from=Baseline /usr/share/elasticsearch/lib /usr/share/elasticsearch/lib
-COPY --from=Baseline /usr/share/elasticsearch/modules/x-pack-core /usr/share/elasticsearch/modules/x-pack-core
+COPY --from=Baseline /usr/share/elasticsearch /usr/share/elasticsearch
+
 COPY build_crack_jar.sh /crack
 
-RUN apt update && apt install -y zip && apt-get clean && mkdir -p /tmp/ik && \
+RUN apt update && apt install -y zip && apt-get clean && rm-rf /usr/share/elasticsearch/jdk && mkdir -p /tmp/ik && \
                                                                  cd /tmp/ik && \
                                                                  curl -L -o ik.zip https://release.infinilabs.com/analysis-ik/stable/elasticsearch-analysis-ik-8.11.4.zip && \
                                                                  unzip ik.zip -d /usr/share/elasticsearch/plugins/ik && \
