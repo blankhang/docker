@@ -88,7 +88,7 @@ Docker Desktop For Windows
 ```json
 {
   "registry-mirrors": [
-    "https://hub.uuuadc.top/“
+    "https://hub.uuuadc.top/"
   ],
   "builder": {
     "gc": {
