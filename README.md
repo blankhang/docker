@@ -74,7 +74,7 @@ https://docs.docker.com/desktop/install/windows-install/
 Docker Desktop For Mac
 
 右键点击桌面顶栏的 docker 图标，选择 Preferences ，修改在 Docker Engine 标签页中的 json ，在 Registry mirrors 列表中加入下面的镜像地址:
-https://hub-mirror.c.163.com
+https://hub.uuuadc.top/
 点击 Apply & Restart 按钮使设置生效。
 
 ### Windows
