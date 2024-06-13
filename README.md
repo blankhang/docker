@@ -81,14 +81,14 @@ https://hub-mirror.c.163.com
 Docker Desktop For Windows
 
 在桌面右下角状态栏中右键 docker 图标，选择 Settings ，修改在 Docker Engine 标签页中的 json ， 在 Registry mirrors 列表中加入下面的镜像地址:  
-https://hub-mirror.c.163.com
+#国内加速全GG,切换到公益加速服务器 感谢此服务提供者
+[https://hub.uuuadc.top](https://hub.uuuadc.top/)
 点击 Apply & Restart 按钮使设置生效。  
 完整的json配置文件看起来像这样
 ```json
 {
   "registry-mirrors": [
-    "https://hub-mirror.c.163.com",
-    "https://mirror.baidubce.com"
+    "https://hub.uuuadc.top/“
   ],
   "builder": {
     "gc": {
