@@ -1,5 +1,4 @@
 name: Docker Image Jenkins CI
-
 on:
   workflow_dispatch: # github页面手动触发
   push:
@@ -49,7 +48,7 @@ jobs:
           tags: ${{ env.IMAGE_JDK_21_NAME }}
 
       - name: Image digest
-        run: echo ${{ steps.openjdk21_build.outputs.digest }}
+        run: echo ${{ steps.docker_build.outputs.digest }}
 
       - name: Login to AliDockerHub
         uses: docker/login-action@v3
