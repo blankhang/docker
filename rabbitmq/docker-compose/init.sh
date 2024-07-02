@@ -7,7 +7,7 @@ chmod 755 /docker/rabbitmq/{conf,data}
 
 echo -e "\033[36m creating rabbimtq.conf \033[0m"
 # create rabbimtq.conf
-cat << 'EOF' > /docker/mysql/conf/my.cnf
+cat << 'EOF' > /docker/rabbimtq/conf/rabbimtq.cnf
 loopback_users.guest = false
 listeners.tcp.default = 5672
 management.listener.port = 15672
