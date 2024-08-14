@@ -20,27 +20,32 @@ curl -sSL https://github.com/blankhang/docker/raw/master/install-docker.sh | sh
 ```
 或者手动执行脚本内容
 ```shell
-# 移除旧版 docker
-for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do sudo apt-get remove $pkg; done
+#!/bin/bash
 
-# 添加官方密钥
-sudo apt-get update
-sudo apt-get install ca-certificates curl gnupg
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-
-# 添加官方源
-echo \
-  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# 再次更新缓存
+echo '移除旧版 docker'
+sudo apt-get remove docker docker-engine docker-ce docker.io
 sudo apt-get update
 
-# 安装 docker docker compose
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+echo 'apt-get 可以使用 https 库'
+sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+
+echo '创建 keyrings 目录并下载 Docker 的 GPG 公钥'
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+echo '添加 Docker 的远程库'
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+echo '安装 Docker 及相关插件'
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+echo '添加 docker-compose 的 alias 指令'
+echo 'alias docker-compose="docker compose"' >> ~/.bashrc
+source ~/.bashrc
+
+echo '安装完成'
+
 ```
 
 [官方安装方法 Install Docker On Ubuntu](https://docs.docker.com/engine/install/ubuntu/)  
