@@ -20,8 +20,6 @@ curl -sSL https://github.com/blankhang/docker/raw/master/install-docker.sh | sh
 ```
 或者手动执行脚本内容
 ```shell
-#!/bin/bash
-
 echo '移除旧版 docker'
 sudo apt-get remove docker docker-engine docker-ce docker.io
 sudo apt-get update
