@@ -14,6 +14,11 @@ Docker 的 安装资源文件 存放在Amazon S3，会间歇性连接失败。�
 <s>curl -sSL https://get.daocloud.io/docker | sh</s>
 </pre>
 
+
+<pre>
+  
+</pre>
+
 我自己写的快速安装脚本  原版安装源国内会非常慢 改用阿里云的镜像库安装
 ```shell
 curl -sSL https://github.com/blankhang/docker/raw/master/install-docker.sh | sh
@@ -29,10 +34,10 @@ sudo apt-get install -y apt-transport-https ca-certificates curl software-proper
 
 echo '创建 keyrings 目录并下载 Docker 的 GPG 公钥'
 sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.asc
 
 echo '添加 Docker 的远程库'
-echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 echo '安装 Docker 及相关插件'
 sudo apt-get update
