@@ -1,5 +1,3 @@
-#!/bin/bash
-
 echo '移除旧版 docker'
 sudo apt-get remove docker docker-engine docker-ce docker.io
 sudo apt-get update
@@ -9,10 +7,10 @@ sudo apt-get install -y apt-transport-https ca-certificates curl software-proper
 
 echo '创建 keyrings 目录并下载 Docker 的 GPG 公钥'
 sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.asc
 
 echo '添加 Docker 的远程库'
-echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 echo '安装 Docker 及相关插件'
 sudo apt-get update
