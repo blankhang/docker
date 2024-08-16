@@ -19,7 +19,7 @@ Docker 的 安装资源文件 存放在Amazon S3，会间歇性连接失败。�
   
 </pre>
 
-我自己写的快速安装脚本  原版安装源国内会非常慢 改用阿里云的镜像库安装
+我自己写的快速安装脚本  原版安装源国内会非常慢 阿里镜像开始限速 改用清华源的镜像库安装
 ```shell
 curl -sSL https://github.com/blankhang/docker/raw/master/install-docker.sh | sh
 ```
