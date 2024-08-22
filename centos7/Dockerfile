@@ -2,7 +2,9 @@ FROM centos:7
 MAINTAINER blankhang <blankhang@gmail.com>
 LABEL version='1.0' description='centos7 with chinese lanugage and CST GMT+8 timezone support'
 
-
+RUN sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo && \
+    sed -i s/^#.*baseurl=http/baseurl=http/g /etc/yum.repos.d/*.repo && \
+    sed -i s/^mirrorlist=http/#mirrorlist=http/g /etc/yum.repos.d/*.repo
 RUN yum install -y epel-release && \
     yum install -y ibXmu freetype kde-l10n-Chinese cabextract fontconfig xorg-x11-font-utils  wget && \
     wget  --no-check-certificate https://downloads.sourceforge.net/project/mscorefonts2/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm && \
