@@ -1,19 +1,27 @@
 FROM alpine:3.12
 LABEL maintainer="blankhang <blankhang@gmail.comm>"
-RUN apk add --no-cache ca-certificates bash curl openssl binutils zip zstd tzdata \
-    && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo "Asia/Shanghai" > /etc/timezone \
-    && GLIBC_VER="2.32-r0" \
-    && ALPINE_GLIBC_REPO="https://github.com/sgerrand/alpine-pkg-glibc/releases/download" \
-    && curl -Ls ${ALPINE_GLIBC_REPO}/${GLIBC_VER}/glibc-${GLIBC_VER}.apk > /tmp/${GLIBC_VER}.apk \
+# Install required packages
+RUN apk add --no-cache \
+    ca-certificates \
+    bash \
+    curl \
+    openssl \
+    binutils \
+    zip \
+    zstd \
+    tzdata
+
+# Set timezone
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "Asia/Shanghai" > /etc/timezone
+
+# Install glibc (consider alternative methods if needed)
+ENV GLIBC_VER="2.32-r0"
+ENV ALPINE_GLIBC_REPO="https://github.com/sgerrand/alpine-pkg-glibc/releases/download"
+RUN curl -Ls ${ALPINE_GLIBC_REPO}/${GLIBC_VER}/glibc-${GLIBC_VER}.apk > /tmp/${GLIBC_VER}.apk \
     && apk add --allow-untrusted /tmp/${GLIBC_VER}.apk \
-    && curl -Ls https://www.archlinux.org/packages/core/x86_64/gcc-libs/download > /tmp/gcc-libs.tar.zst \
-    && mkdir /tmp/gcc \
-    && zstd -d /tmp/gcc-libs.tar.zst && tar xvf /tmp/gcc-libs.tar -C /tmp/gcc \
-    && mv /tmp/gcc/usr/lib/libgcc* /tmp/gcc/usr/lib/libstdc++* /usr/glibc-compat/lib \
-    && curl -Ls https://www.archlinux.org/packages/core/x86_64/zlib/download > /tmp/libz.tar.zst \
-    && mkdir /tmp/libz \
-    && tar -xf /tmp/libz.tar.zst -C /tmp/libz \
-    && mv /tmp/libz/usr/lib/libz.so* /usr/glibc-compat/lib \
-    && apk del binutils \
-    && rm -rf /tmp/${GLIBC_VER}.apk /tmp/gcc /tmp/gcc-libs.tar.zst /tmp/libz /tmp/libz.tar.zst /var/cache/apk/*
+    && rm -f /tmp/${GLIBC_VER}.apk
+
+# Cleanup
+RUN apk del binutils \
+    && rm -rf /var/cache/apk/*
