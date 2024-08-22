@@ -1,5 +1,5 @@
-FROM centos:7
-MAINTAINER blankhang <blankhang@gmail.com>
+FROM blankhang/centos7
+LABEL maintainer="blankhang <blankhang@gmail.comm>"
 LABEL version='1.0' description='centos7 with chinese lanugage and openjdk8 and CST GMT+8 timezone support'
 
 #COPY ./msyh.ttf /usr/share/fonts/msyh.ttf

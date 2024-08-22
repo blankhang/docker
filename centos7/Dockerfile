@@ -1,5 +1,5 @@
 FROM centos:7
-MAINTAINER blankhang <blankhang@gmail.com>
+LABEL maintainer="blankhang <blankhang@gmail.comm>"
 LABEL version='1.0' description='centos7 with chinese lanugage and CST GMT+8 timezone support'
 
 RUN sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo && \
