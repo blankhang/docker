@@ -1,5 +1,5 @@
 FROM alpine:3.12
-MAINTAINER blankhang <blankhang@gmail.comm>
+LABEL maintainer="blankhang <blankhang@gmail.comm>"
 RUN apk add --no-cache ca-certificates bash curl openssl binutils zip zstd tzdata \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "Asia/Shanghai" > /etc/timezone \
@@ -11,7 +11,6 @@ RUN apk add --no-cache ca-certificates bash curl openssl binutils zip zstd tzdat
     && mkdir /tmp/gcc \
     && zstd -d /tmp/gcc-libs.tar.zst && tar xvf /tmp/gcc-libs.tar -C /tmp/gcc \
     && mv /tmp/gcc/usr/lib/libgcc* /tmp/gcc/usr/lib/libstdc++* /usr/glibc-compat/lib \
-    && strip /usr/glibc-compat/lib/libgcc_s.so.* /usr/glibc-compat/lib/libstdc++.so* \
     && curl -Ls https://www.archlinux.org/packages/core/x86_64/zlib/download > /tmp/libz.tar.zst \
     && mkdir /tmp/libz \
     && tar -xf /tmp/libz.tar.zst -C /tmp/libz \
