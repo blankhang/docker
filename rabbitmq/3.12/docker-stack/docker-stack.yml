@@ -3,7 +3,7 @@ services:
   rabbitmq:
     image: blankhang/rabbitmq:3.12-management
     environment:
-    #- Default user/pwd is blankhang/blankhang
+    #- Default user/pwd is admin/admin
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=admin
       - RABBITMQ_ERLANG_COOKIE=secret_cookie

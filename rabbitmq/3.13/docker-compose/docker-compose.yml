@@ -1,0 +1,103 @@
+version: "3.9"
+services:
+  rabbit1:
+    image: blankhang/rabbitmq:3.13-management
+    hostname: rabbit1
+    healthcheck:
+      test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
+      RABBITMQ_NODENAME: rabbit1
+    configs:
+      - source: rabbitmq_conf
+        target: /etc/rabbitmq/rabbitmq.conf
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
+    ports:
+      - "15672:15672"
+    networks:
+      - rabbitmq-compose
+
+  rabbit2:
+    image: blankhang/rabbitmq:3.13-management
+    hostname: rabbit2
+    healthcheck:
+      test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
+      RABBITMQ_NODENAME: rabbit2
+    configs:
+      - source: rabbitmq_conf
+        target: /etc/rabbitmq/rabbitmq.conf
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
+    networks:
+      - rabbitmq-compose
+
+  rabbit3:
+    image: blankhang/rabbitmq:3.13-management
+    hostname: rabbit3
+    healthcheck:
+      test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
+      RABBITMQ_NODENAME: rabbit3
+    configs:
+      - source: rabbitmq_conf
+        target: /etc/rabbitmq/rabbitmq.conf
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
+    networks:
+      - rabbitmq-compose
+
+  haproxy:
+    image: haproxy:3.0-alpine
+    hostname: haproxy
+    healthcheck:
+      test: curl -s https://localhost:35673 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 1m
+      restart_policy:
+        condition: on-failure
+    environment:
+      TZ: "Asia/Shanghai"
+    ports:
+      - "35671:35671" # RabbitMQ load balance AMQP port
+      - "35672:35672" # RabbitMQ management ui http port
+      - "35673:35673" # HAProxy stats http port
+    configs:
+      - source: haproxy_cfg
+        target: /usr/local/etc/haproxy/haproxy.cfg
+    networks:
+      - rabbitmq-compose
+    depends_on:
+      - rabbit1
+      - rabbit2
+      - rabbit3
+
+
+configs:
+  rabbitmq_conf:
+    file: ./conf/rabbitmq.conf
+  haproxy_cfg:
+    file: ./conf/haproxy.cfg
+
+
+networks:
+  rabbitmq-compose:
+    driver: bridge

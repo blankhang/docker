@@ -60,6 +60,6 @@ public class GeneratorSaltedSha256Password {
     public static void main (String args[]) {
         // 修改你的rabbitmq密码
         // please change your rabbitmq password here
-        System.out.println(getPasswordHash("you-rabbitmq-passwd"));
+        System.out.println(getPasswordHash("blankhang"));
     }
 }
