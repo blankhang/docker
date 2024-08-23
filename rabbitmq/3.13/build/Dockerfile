@@ -21,7 +21,7 @@ RUN rabbitmq-plugins enable --offline rabbitmq_delayed_message_exchange
 
 RUN rabbitmq-plugins enable --offline rabbitmq_consistent_hash_exchange
 
-RUN rabbitmq-plugins enable --offline rabbitmq_mqtt && rabbitmqctl enable_feature_flag all
+RUN rabbitmq-plugins enable rabbitmq_mqtt && rabbitmqctl enable_feature_flag all
 
 #/etc/rabbitmq/enabled_plugins
 ADD config/enabled_plugins /etc/rabbitmq/enabled_plugins
