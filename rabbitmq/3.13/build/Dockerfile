@@ -7,9 +7,7 @@ LABEL maintainer="blankhang <blankhang@gmail.comm>"
 ENV TZ=Asia/Shanghai \
     DEBIAN_FRONTEND=noninteractive
 
-RUN apt update
-
-RUN apt install -y curl tzdata \
+RUN apt update && apt install -y curl tzdata \
     && ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime \
     && echo ${TZ} > /etc/timezone \
     && dpkg-reconfigure --frontend noninteractive tzdata \
@@ -22,6 +20,8 @@ RUN chown rabbitmq:rabbitmq $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exch
 RUN rabbitmq-plugins enable --offline rabbitmq_delayed_message_exchange
 
 RUN rabbitmq-plugins enable --offline rabbitmq_consistent_hash_exchange
+
+RUN rabbitmq-plugins enable --offline rabbitmq_mqtt && rabbitmqctl enable_feature_flag all
 
 #/etc/rabbitmq/enabled_plugins
 ADD config/enabled_plugins /etc/rabbitmq/enabled_plugins

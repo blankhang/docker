@@ -70,6 +70,8 @@ rabbitmq-plugins list
 rabbitmq-plugins enable <plugin-name>
 # 启用 mqtt 插件
 rabbitmq-plugins enable rabbitmq_mqtt
+# 由于 MQTT 插件是动态启用的，因此 MQTT 插件定义的功能标志将被禁用。启用所有功能标志，包括功能标志 mqtt_v5：
+rabbitmqctl enable_feature_flag all
 
 # 禁用插件
 rabbitmq-plugins disable <plugin-name>
