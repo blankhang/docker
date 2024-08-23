@@ -1,8 +1,8 @@
-## arm64/amd64 arch support rabbitmq:3.12-management image with GMT+8 TZ 
-## 支持 arm64 amd64 架构的 rabbitmq:3.12-management GMT+8时区的底包镜像 添加启用延迟队列插件
+## arm64/amd64 arch support rabbitmq:3.13-management image with GMT+8 TZ 
+## 支持 arm64 amd64 架构的 rabbitmq:3.13-management GMT+8时区的底包镜像 添加启用延迟队列插件
 source code at https://github.com/blankhang/docker/tree/master/ubuntu2204
 
-### 基于官方 rabbitmq 3.12.0-management 版本
+### 基于官方 rabbitmq 3.13-management 版本
 ### 默认启用如下插件
 - rabbitmq_management
 - rabbitmq_management_agent
@@ -28,43 +28,43 @@ docker pull blankhang/rabbitmq
 #列出已安装的插件 前面 [E] 表示已启用 [e] 表示隐式启用
 rabbitmq-plugins list
 
-[  ] rabbitmq_amqp1_0                  3.12.0
-[  ] rabbitmq_auth_backend_cache       3.12.0
-[  ] rabbitmq_auth_backend_http        3.12.0
-[  ] rabbitmq_auth_backend_ldap        3.12.0
-[  ] rabbitmq_auth_backend_oauth2      3.12.0
-[  ] rabbitmq_auth_mechanism_ssl       3.12.0
-[E ] rabbitmq_consistent_hash_exchange 3.12.0
-[E ] rabbitmq_delayed_message_exchange 3.12.0
-[  ] rabbitmq_event_exchange           3.12.0
-[E ] rabbitmq_federation               3.12.0
-[E ] rabbitmq_federation_management    3.12.0
-[  ] rabbitmq_jms_topic_exchange       3.12.0
-[E ] rabbitmq_management               3.12.0
-[e ] rabbitmq_management_agent         3.12.0
-[E ] rabbitmq_mqtt                     3.12.0
-[  ] rabbitmq_peer_discovery_aws       3.12.0
-[e ] rabbitmq_peer_discovery_common    3.12.0
-[E ] rabbitmq_peer_discovery_consul    3.12.0
-[  ] rabbitmq_peer_discovery_etcd      3.12.0
-[  ] rabbitmq_peer_discovery_k8s       3.12.0
-[E ] rabbitmq_prometheus               3.12.0
-[  ] rabbitmq_random_exchange          3.12.0
-[  ] rabbitmq_recent_history_exchange  3.12.0
-[  ] rabbitmq_sharding                 3.12.0
-[E ] rabbitmq_shovel                   3.12.0
-[E ] rabbitmq_shovel_management        3.12.0
-[  ] rabbitmq_stomp                    3.12.0
-[  ] rabbitmq_stream                   3.12.0
-[  ] rabbitmq_stream_management        3.12.0
-[  ] rabbitmq_top                      3.12.0
-[  ] rabbitmq_tracing                  3.12.0
-[  ] rabbitmq_trust_store              3.12.0
-[e ] rabbitmq_web_dispatch             3.12.0
-[  ] rabbitmq_web_mqtt                 3.12.0
-[  ] rabbitmq_web_mqtt_examples        3.12.0
-[  ] rabbitmq_web_stomp                3.12.0
-[  ] rabbitmq_web_stomp_examples       3.12.0
+[  ] rabbitmq_amqp1_0                  3.13.0
+[  ] rabbitmq_auth_backend_cache       3.13.0
+[  ] rabbitmq_auth_backend_http        3.13.0
+[  ] rabbitmq_auth_backend_ldap        3.13.0
+[  ] rabbitmq_auth_backend_oauth2      3.13.0
+[  ] rabbitmq_auth_mechanism_ssl       3.13.0
+[E ] rabbitmq_consistent_hash_exchange 3.13.0
+[E ] rabbitmq_delayed_message_exchange 3.13.0
+[  ] rabbitmq_event_exchange           3.13.0
+[E ] rabbitmq_federation               3.13.0
+[E ] rabbitmq_federation_management    3.13.0
+[  ] rabbitmq_jms_topic_exchange       3.13.0
+[E ] rabbitmq_management               3.13.0
+[e ] rabbitmq_management_agent         3.13.0
+[E ] rabbitmq_mqtt                     3.13.0
+[  ] rabbitmq_peer_discovery_aws       3.13.0
+[e ] rabbitmq_peer_discovery_common    3.13.0
+[E ] rabbitmq_peer_discovery_consul    3.13.0
+[  ] rabbitmq_peer_discovery_etcd      3.13.0
+[  ] rabbitmq_peer_discovery_k8s       3.13.0
+[E ] rabbitmq_prometheus               3.13.0
+[  ] rabbitmq_random_exchange          3.13.0
+[  ] rabbitmq_recent_history_exchange  3.13.0
+[  ] rabbitmq_sharding                 3.13.0
+[E ] rabbitmq_shovel                   3.13.0
+[E ] rabbitmq_shovel_management        3.13.0
+[  ] rabbitmq_stomp                    3.13.0
+[  ] rabbitmq_stream                   3.13.0
+[  ] rabbitmq_stream_management        3.13.0
+[  ] rabbitmq_top                      3.13.0
+[  ] rabbitmq_tracing                  3.13.0
+[  ] rabbitmq_trust_store              3.13.0
+[e ] rabbitmq_web_dispatch             3.13.0
+[  ] rabbitmq_web_mqtt                 3.13.0
+[  ] rabbitmq_web_mqtt_examples        3.13.0
+[  ] rabbitmq_web_stomp                3.13.0
+[  ] rabbitmq_web_stomp_examples       3.13.0
 
 # 启用插件
 rabbitmq-plugins enable <plugin-name>
@@ -86,6 +86,6 @@ java / bash 为 旧配置sha256 的 密码加密
 ### Spring Boot 应用连接 RabbitMQ 集群配置
 ```yaml
 spring.rabbitmq.addresses=rabbit1:5672,rabbit2:5672,rabbit3:5672
-spring.rabbitmq.username=blankhang
-spring.rabbitmq.password=blankhang
+spring.rabbitmq.username=admin
+spring.rabbitmq.password=admin
 ```
