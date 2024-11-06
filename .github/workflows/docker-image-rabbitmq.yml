@@ -48,7 +48,7 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE_NAME }}:latest
-            ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+            ${{ env.IMAGE_NAME }}:${{ env.VERSION }}-management
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
@@ -62,6 +62,6 @@ jobs:
 
       - name: ReTag and push to AliDockerHub
         run: |
-          docker pull ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+          docker pull ${{ env.IMAGE_NAME }}:${{ env.VERSION }}-management
           docker tag ${{ env.IMAGE_NAME }}:${{ env.VERSION }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/rabbitmq:${{ env.VERSION }}-management
           docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/rabbitmq:${{ env.VERSION }}-management
