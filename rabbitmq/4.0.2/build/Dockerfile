@@ -1,12 +1,13 @@
 # https://hub.docker.com/_/rabbitmq
 
+FROM rabbitmq:4.0.2-management
+
+LABEL maintainer="blankhang <blankhang@gmail.comm>"
+
 ENV VERSION=4.0.2
 ENV TZ=Asia/Shanghai \
     DEBIAN_FRONTEND=noninteractive
 
-FROM rabbitmq:${VERSION}-management
-
-LABEL maintainer="blankhang <blankhang@gmail.comm>"
 
 RUN apt update && apt install -y curl tzdata \
     && ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime \
