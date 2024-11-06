@@ -64,4 +64,4 @@ jobs:
         run: |
           docker pull ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
           docker tag ${{ env.IMAGE_NAME }}:${{ env.VERSION }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/rabbitmq:${{ env.VERSION }}
-          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/rabbitmq:${{ env.VERSION }}
+          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/rabbitmq:${{ env.VERSION }}-management
