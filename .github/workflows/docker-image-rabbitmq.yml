@@ -40,8 +40,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           builder: ${{ steps.buildx.outputs.name }}
-          context: ./${{ env.IMAGE }}/${{env.VERSION}}/build/
-          file: ./${{ env.IMAGE }}/${{env.VERSION}}/build/Dockerfile
+          context: ./${{ env.IMAGE }}/${{ env.VERSION }}/build/
+          file: ./${{ env.IMAGE }}/${{ env.VERSION }}/build/Dockerfile
           platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
