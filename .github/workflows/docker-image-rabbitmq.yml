@@ -63,5 +63,5 @@ jobs:
       - name: ReTag and push to AliDockerHub
         run: |
           docker pull ${{ env.IMAGE_NAME }}:${{ env.VERSION }}-management
-          docker tag ${{ env.IMAGE_NAME }}:${{ env.VERSION }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/rabbitmq:${{ env.VERSION }}-management
+          docker tag ${{ env.IMAGE_NAME }}:${{ env.VERSION }}-management ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/rabbitmq:${{ env.VERSION }}-management
           docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/rabbitmq:${{ env.VERSION }}-management
