@@ -1,3 +1,3 @@
-docker build -t blankhang/rabbitmq:3.13-management -f Dockerfile .
+docker build -t blankhang/rabbitmq:4.0.2-management -f Dockerfile .
 
-docker push blankhang/rabbitmq:3.13-management
+docker push blankhang/rabbitmq:4.0.2-management

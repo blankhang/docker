@@ -1,5 +1,5 @@
 #!/bin/bash -e
 
-docker image build -t blankhang/rabbitmq:3.13-management .
+docker image build -t blankhang/rabbitmq:4.0.2-management .
 
-docker push blankhang/rabbitmq:3.13-management
+docker push blankhang/rabbitmq:4.0.2-management

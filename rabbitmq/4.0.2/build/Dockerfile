@@ -1,11 +1,12 @@
 # https://hub.docker.com/_/rabbitmq
-FROM rabbitmq:4.0.2-management
 
-LABEL maintainer="blankhang <blankhang@gmail.comm>"
-
-
+ENV VERSION=4.0.2
 ENV TZ=Asia/Shanghai \
     DEBIAN_FRONTEND=noninteractive
+
+FROM rabbitmq:${VERSION}-management
+
+LABEL maintainer="blankhang <blankhang@gmail.comm>"
 
 RUN apt update && apt install -y curl tzdata \
     && ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime \
@@ -13,9 +14,9 @@ RUN apt update && apt install -y curl tzdata \
     && dpkg-reconfigure --frontend noninteractive tzdata \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -L https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases/download/v4.0.2/rabbitmq_delayed_message_exchange-4.0.2.ez > $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-3.13.0.ez
+RUN curl -L https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases/download/v4.0.2/rabbitmq_delayed_message_exchange-${VERSION}.ez > $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-${VERSION}.ez
 
-RUN chown rabbitmq:rabbitmq $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-4.0.2.ez
+RUN chown rabbitmq:rabbitmq $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-${VERSION}.ez
 
 RUN rabbitmq-plugins enable --offline rabbitmq_delayed_message_exchange rabbitmq_consistent_hash_exchange rabbitmq_mqtt
 
