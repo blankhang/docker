@@ -1,0 +1,22 @@
+version: '3.9'
+services:
+  rabbitmq:
+    image: blankhang/rabbitmq:3.13-management
+    environment:
+    #- Default user/pwd is admin/admin
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+      - RABBITMQ_ERLANG_COOKIE=secret_cookie
+    deploy:
+      mode: replicated
+      replicas: 3
+      placement:
+        constraints: [node.role == worker]
+    networks:
+      - rabbitmq-cluster
+    ports:
+      - "45672:5672"
+      - "55672:15672"
+networks:
+  rabbitmq-cluster:
+    driver: overlay
