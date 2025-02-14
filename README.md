@@ -45,7 +45,7 @@ sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plug
 
 echo '添加 docker-compose 的 alias 指令'
 echo 'alias docker-compose="docker compose"' >> /root/.bashrc
-source ~/.bashrc
+source /root/.bashrc
 
 echo '安装完成'
 
