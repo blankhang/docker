@@ -1,7 +1,7 @@
 version: "3.9"
 services:
   rabbit1:
-    image: blankhang/rabbitmq:4.0.9-management
+    image: blankhang/rabbitmq:4.1.0-management
     hostname: rabbit1
     healthcheck:
       test: ["CMD", "rabbitmqctl", "node_health_check"]
@@ -30,7 +30,7 @@ services:
 
 
   rabbit2:
-    image: blankhang/rabbitmq:4.0.9-management
+    image: blankhang/rabbitmq:4.1.0-management
     hostname: rabbit2
     healthcheck:
       test: ["CMD", "rabbitmqctl", "node_health_check"]
@@ -68,7 +68,7 @@ services:
 
 
   rabbit3:
-    image: blankhang/rabbitmq:4.0.9-management
+    image: blankhang/rabbitmq:4.1.0-management
     hostname: rabbit3
     healthcheck:
       test: ["CMD", "rabbitmqctl", "node_health_check"]
