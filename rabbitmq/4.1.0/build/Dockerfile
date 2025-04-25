@@ -27,4 +27,4 @@ RUN rabbitmq-plugins enable --offline rabbitmq_delayed_message_exchange rabbitmq
 #/etc/rabbitmq/enabled_plugins
 ADD config/enabled_plugins /etc/rabbitmq/enabled_plugins
 
-ADD config/rabbitmq.conf /etc/rabbitmq/conf.d/mq.conf
+ADD config/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf
