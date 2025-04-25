@@ -6,11 +6,11 @@ services:
     container_name: rabbitmq
     restart: always
     healthcheck:
-      test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
-      interval: 5s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
     environment:
       #- default user/pwd is guest/quest
       - RABBITMQ_DEFAULT_USER=admin

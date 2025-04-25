@@ -92,9 +92,6 @@ services:
 configs:
   rabbitmq_conf:
     file: ./conf/rabbitmq.conf
-  haproxy_cfg:
-    file: ./conf/haproxy.cfg
-
 
 networks:
   rabbitmq-compose:

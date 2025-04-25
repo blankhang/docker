@@ -4,10 +4,11 @@ services:
     image: blankhang/rabbitmq:4.1.0-management
     hostname: rabbit1
     healthcheck:
-      test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
-      interval: 5s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
     environment:
       RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
       RABBITMQ_NODENAME: rabbit1
@@ -25,10 +26,11 @@ services:
     image: blankhang/rabbitmq:4.1.0-management
     hostname: rabbit2
     healthcheck:
-      test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
-      interval: 5s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
     environment:
       RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
       RABBITMQ_NODENAME: rabbit2
@@ -44,10 +46,11 @@ services:
     image: blankhang/rabbitmq:4.1.0-management
     hostname: rabbit3
     healthcheck:
-      test: curl -s https://localhost:15672 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
-      interval: 5s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
     environment:
       RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
       RABBITMQ_NODENAME: rabbit3
@@ -63,8 +66,6 @@ services:
 configs:
   rabbitmq_conf:
     file: ./conf/rabbitmq.conf
-  haproxy_cfg:
-    file: ./conf/haproxy.cfg
 
 
 networks:
