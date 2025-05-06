@@ -1397,7 +1397,7 @@ services:
       timeout: 10s
       retries: 3
     volumes:
-      - '/docker/redis/conf/redis.conf:/usr/local/etc/redis/redis.conf'
+      - '/docker/redis/8/conf/redis.conf:/usr/local/etc/redis/redis.conf'
       - 'redis_data:/data'
     command: redis-server /usr/local/etc/redis/redis.conf
     ports:

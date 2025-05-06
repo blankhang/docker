@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # create redis local data store directory
-mkdir  -p /docker/redis/{conf,data}
-chmod 755 /docker/redis/{conf,data}
+mkdir  -p /docker/redis/7/{conf,data}
+chmod 755 /docker/redis/7/{conf,data}
 
 # create redis.conf file
-cat << 'EOF' > /docker/redis/conf/redis.conf
+cat << 'EOF' > /docker/redis/7/conf/redis.conf
 # Redis configuration file example.
 #
 # Note that in order to read the configuration file, Redis must be
@@ -1381,7 +1381,7 @@ rdb-save-incremental-fsync yes
 EOF
 
 # create redis's docker-compose file
-cat << 'EOF' > /docker/redis/docker-compose.yml
+cat << 'EOF' > /docker/redis/7/docker-compose.yml
 version: '3.7'
 
 services:
@@ -1397,7 +1397,7 @@ services:
       timeout: 10s
       retries: 3
     volumes:
-      - '/docker/redis/conf/redis.conf:/usr/local/etc/redis/redis.conf'
+      - '/docker/redis/7/conf/redis.conf:/usr/local/etc/redis/redis.conf'
       - 'redis_data:/data'
     command: redis-server /usr/local/etc/redis/redis.conf
     ports:
