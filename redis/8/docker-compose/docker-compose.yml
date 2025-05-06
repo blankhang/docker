@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+
+  redis:
+    image: redis:8
+    restart: always
+    container_name: redis
+    hostname: redis
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 60s
+      timeout: 3s
+      retries: 3
+#    volumes:
+#      - '/docker/redis/conf/redis.conf:/usr/local/etc/redis/redis.conf'
+#      - 'redis_data:/data'
+#    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+
+#  redis-commander:
+#    image: rediscommander/redis-commander:latest
+#    container_name: redis-commander
+#    environment:
+#     - REDIS_HOST=redis
+#     - REDIS_PORT=59394
+#     - REDIS_PASSWORD=123456
+#    ports:
+#    - "59395:8081"
+
+
+#volumes:
+#  redis_data:
+
+# redis default conf
+# #http://download.redis.io/redis-stable/redis.conf

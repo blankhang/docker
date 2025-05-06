@@ -14,14 +14,14 @@ sh init.sh
 sh start.sh
 
 # 或
-docker-compose -f /docker/redis/docker-compose.yml up -d
+docker-compose -f /docker/redis/8/docker-compose.yml up -d
 
 # 修改配置文件后
 # 重启 redis
-docker-compose -f /docker/redis/docker-compose.yml restart
+docker-compose -f /docker/redis/8/docker-compose.yml restart
 
 # 停止 redis
-docker-compose -f /docker/redis/docker-compose.yml down
+docker-compose -f /docker/redis/8/docker-compose.yml down
 ```
 ---
 #### 开启 aof 方法 [开启后会降低 redis 效率]
