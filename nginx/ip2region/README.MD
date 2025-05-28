@@ -89,7 +89,7 @@ http {
 }
 
 ```
-
+Copy `ngx_http_ip2region_module.so` to `/etc/nginx/modules` folder  
 Copy `ip2region.xdb` to `/etc/nginx` folder, then restart nginx, the `region` data stored in `ip2region` variable
 
 nginx access log sample
