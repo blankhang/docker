@@ -90,7 +90,7 @@ http {
 
 ```
 
-Copy `ip2region.xdb` to `nginx/config` (e.g. nginx/conf.d) folder, then restart nginx, the `region` data stored in `ip2region` variable
+Copy `ip2region.xdb` to `/etc/nginx` (e.g. nginx/conf.d) folder, then restart nginx, the `region` data stored in `ip2region` variable
 
 nginx access log sample
 
