@@ -13,6 +13,7 @@ on:
 env:
   IMAGE: redis # 镜像
   IMAGE_NAME: blankhang/redis #这是您的镜像名
+  IMAGE_VERSION: 8 # 版本号
   
 jobs:
 
@@ -22,37 +23,56 @@ jobs:
       TZ: Asia/Shanghai
     steps:
     - name: Checkout Repo
-      uses: actions/checkout@v3.5.3
+      uses: actions/checkout@v4
 
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@v2
+      uses: docker/setup-qemu-action@v3
       with:
         platforms: all
 
     - name: Set up Docker Buildx
       id: buildx
-      uses: docker/setup-buildx-action@v2
+      uses: docker/setup-buildx-action@v3
 
     - name: Docker Login
-      #if: github.event_name !='pull_request'
-      uses: docker/login-action@v2.2.0
+      uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build and push
       id: docker_build
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@v5
       with:
         builder: ${{ steps.buildx.outputs.name }}
-        context: ./${{ env.IMAGE }}/build
-        file: ./${{ env.IMAGE }}/build/Dockerfile
+        context: ./${{ env.IMAGE }}/${{ env.IMAGE_VERSION }}/build/
+        file: ./${{ env.IMAGE }}//${{ env.IMAGE_VERSION }}/build/Dockerfile
         platforms: linux/amd64,linux/arm/v7,linux/arm64
         #,linux/ppc64le,linux/s390x
         cache-from: type=gha
         cache-to: type=gha,mode=max
         push: true
-        tags: ${{ env.IMAGE_NAME }}:latest
+        tags: |
+          ${{ env.IMAGE_NAME }}:latest
+          ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
+
 
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
+
+    - name: Login to AliDockerHub
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}
+        username: ${{ secrets.ALI_DOCKER_HUB_USN }}
+        password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
+
+    - name: ReTag and push to AliDockerHub
+      run: |
+        docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
+
+        docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
+        docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
+        
+        docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
+        docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
