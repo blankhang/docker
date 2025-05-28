@@ -90,13 +90,16 @@ http {
 
 ```
 Copy `ngx_http_ip2region_module.so` to `/etc/nginx/modules` folder  
-Copy `ip2region.xdb` to `/etc/nginx` folder, then restart nginx, the `region` data stored in `ip2region` variable
+Copy `ip2region.xdb` to `/etc/nginx` folder, then reload nginx
+
+```shell
+nginx -s reload
+```
 
 nginx access log sample
 
 ```log
-{"remote_addr": "127.0.0.1", "region": "0|0|0|内网IP|内网IP", "http_x_forwarded_for": ""}
-{"remote_addr": "127.0.0.1", "region": "0|0|0|内网IP|内网IP", "http_x_forwarded_for": ""}
+{"time": "28/May/2025:14:32:55 +0800", "remote_addr": "183.11.242.141", "region": "中国|0|广东省|深圳市|电信", "method": "GET", "uri": "/", "status": "200", "body_bytes_sent": "798", "referer": "https://xxx.com/index", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36", "http_x_forwarded_for": ""}
 
 ```
 thanks fa1seut0pia for https://github.com/lionsoul2014/ip2region/pull/359
