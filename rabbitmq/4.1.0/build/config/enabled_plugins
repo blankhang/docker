@@ -2,7 +2,7 @@
 rabbitmq_consistent_hash_exchange,
 rabbitmq_delayed_message_exchange,
 rabbitmq_mqtt,
-rabbitmq_web_mqtt
+rabbitmq_web_mqtt,
 rabbitmq_web_stomp,
 rabbitmq_prometheus,
 rabbitmq_peer_discovery_consul,
