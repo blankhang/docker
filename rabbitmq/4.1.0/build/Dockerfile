@@ -19,7 +19,7 @@ RUN curl -L https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releas
 
 RUN chown rabbitmq:rabbitmq $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-${VERSION}.ez
 
-RUN rabbitmq-plugins enable --offline rabbitmq_delayed_message_exchange rabbitmq_consistent_hash_exchange rabbitmq_mqtt
+RUN rabbitmq-plugins enable --offline rabbitmq_delayed_message_exchange rabbitmq_consistent_hash_exchange rabbitmq_mqtt rabbitmq_web_mqtt rabbitmq_web_stomp
 
 # only need when upgrad from old version
 #RUN rabbitmqctl enable_feature_flag all || true
