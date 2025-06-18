@@ -36,7 +36,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装 Gradle
-ENV GRADLE_VERSION=8.5 \
+ENV GRADLE_VERSION=8.14.2 \
     GRADLE_HOME=/opt/gradle
 RUN curl -Lo /tmp/gradle.zip https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip \
     && unzip /tmp/gradle.zip -d /opt/ \
