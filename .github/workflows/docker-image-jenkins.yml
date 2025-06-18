@@ -10,6 +10,7 @@ env:
   IMAGE: jenkins
   IMAGE_NAME: blankhang/jenkins
   IMAGE_JDK_21_NAME: blankhang/jenkins:lts-jdk21
+  IMAGE_JDK_21_LATEST: blankhang/jenkins:latest
   IMAGE_ANDROID_JDK_21_NAME: blankhang/jenkins:lts-android-jdk21
 
 jobs:
@@ -17,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TZ: Asia/Shanghai
+
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -47,7 +49,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           push: true
-          tags: ${{ env.IMAGE_JDK_21_NAME }}
+          tags: |
+            ${{ env.IMAGE_JDK_21_NAME }}
+            ${{ env.IMAGE_JDK_21_LATEST }}
 
       - name: Build android-jdk21 image and push
         id: build_android_jdk21
@@ -77,10 +81,13 @@ jobs:
       - name: ReTag and push to AliDockerHub
         run: |
           docker pull ${{ env.IMAGE_JDK_21_NAME }}
+          docker pull ${{ env.IMAGE_JDK_21_LATEST }}
           docker pull ${{ env.IMAGE_ANDROID_JDK_21_NAME }}
 
           docker tag ${{ env.IMAGE_JDK_21_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk21
+          docker tag ${{ env.IMAGE_JDK_21_LATEST }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:latest
           docker tag ${{ env.IMAGE_ANDROID_JDK_21_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-android-jdk21
 
           docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk21
+          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:latest
           docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-android-jdk21
