@@ -68,6 +68,7 @@ RUN jenkins-plugin-cli --plugins  \
   locale \
   ssh-steps \
   publish-over-ssh \
+  pipeline-stage-view \
   pipeline-utility-steps \
   pipeline-maven \
   pipeline-maven-api \
