@@ -20,13 +20,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && echo "jenkins ALL=NOPASSWD: ALL" >> /etc/sudoers \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 Docker CLI（不包含守护进程）
-RUN mkdir -p /etc/apt/keyrings \
-    && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
-    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bullseye stable" > /etc/apt/sources.list.d/docker.list \
-    && apt-get update && apt-get install -y --no-install-recommends docker-ce-cli \
-    && usermod -aG docker jenkins \
-    && rm -rf /var/lib/apt/lists/*
+# 安装 Docker CLI
+RUN wget http://get.docker.com/builds/Linux/x86_64/docker-latest.tgz \
+      && tar -xvzf docker-latest.tgz \
+      && mv docker/docker /usr/local/bin \
+      && rm -rf docker docker-latest.tgz \
+      && rm -rf /var/lib/apt/lists/*
 
 # 安装 Node.js 22 + Yarn + pnpm
 ENV NODEJS_VERSION=22
