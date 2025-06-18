@@ -6,9 +6,7 @@ USER root
 # 设置时区 & 中文语言环境
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=Asia/Shanghai \
-    LANG=zh_CN.UTF-8 \
-    LANGUAGE=zh_CN.UTF-8 \
-    LC_ALL=zh_CN.UTF-8
+    LANG=C.UTF-8
 
 # 安装基本工具 + 中文 + Maven + Node.js + Yarn + pnpm
 RUN apt-get update && apt-get install -y --no-install-recommends \

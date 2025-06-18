@@ -5,9 +5,7 @@ USER root
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Shanghai
-ENV LANG=zh_CN.UTF-8
-ENV LANGUAGE=zh_CN.UTF-8
-ENV LC_ALL=zh_CN.UTF-8
+ENV LANG=C.UTF-8
 
 ENV GRADLE_VERSION=8.14.2
 ENV NODEJS_VERSION=22
@@ -77,4 +75,5 @@ RUN jenkins-plugin-cli --plugins  \
   pipeline-model-extensions \
   workflow-durable-task-step \
   docker-plugin \
-  docker-workflow
+  docker-workflow \
+  localization-zh-cn
