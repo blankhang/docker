@@ -24,14 +24,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 Docker CLI（使用官方推荐方式）
-RUN mkdir -p /etc/apt/keyrings \
-    && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-    https://download.docker.com/linux/debian $(lsb_release -cs) stable" \
-    | tee /etc/apt/sources.list.d/docker.list > /dev/null \
-    && apt-get update && apt-get install -y docker-ce-cli \
-    && rm -rf /var/lib/apt/lists/*
+# 安装 Docker CLI
+RUN wget http://get.docker.com/builds/Linux/x86_64/docker-latest.tgz \
+      && tar -xvzf docker-latest.tgz \
+      && mv docker/docker /usr/local/bin \
+      && rm -rf docker docker-latest.tgz \
+      && rm -rf /var/lib/apt/lists/*
 
 # 安装 Node.js（使用 NodeSource） + Yarn + pnpm
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - \
@@ -39,7 +37,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - \
     && npm install -g yarn pnpm \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 Gradle（自定义版本）
+# 安装 Gradle
 RUN curl -Lo /tmp/gradle.zip https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip \
     && unzip /tmp/gradle.zip -d /opt/ \
     && ln -s /opt/gradle-${GRADLE_VERSION}/bin/gradle /usr/bin/gradle \
