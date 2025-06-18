@@ -66,5 +66,24 @@ RUN mkdir -p /.android /.gradle \
 USER jenkins
 
 # 可选：预安装 Jenkins 插件
-RUN jenkins-plugin-cli --plugins git gradle android-emulator ws-cleanup embeddable-build-status blueocean locale ssh-steps pipeline-utility-steps pipeline-maven pipeline-maven-api okhttp-api pipeline-model-api pipeline-model-definition pipeline-model-extensions workflow-durable-task-step
-
+RUN jenkins-plugin-cli --plugins  \
+  git \
+  maven-plugin \
+  gradle \
+  nodejs \
+  ws-cleanup \
+  blueocean \
+  locale \
+  ssh-steps \
+  publish-over-ssh \
+  pipeline-utility-steps \
+  pipeline-maven \
+  pipeline-maven-api \
+  pipeline-model-api \
+  pipeline-model-definition \
+  pipeline-model-extensions \
+  workflow-durable-task-step \
+  docker-plugin \
+  docker-workflow \
+  android-emulator \
+  embeddable-build-status

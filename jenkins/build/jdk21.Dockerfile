@@ -57,3 +57,24 @@ RUN mkdir -p ${GRADLE_USER_HOME}/caches /.android \
     && chown -R jenkins:jenkins ${GRADLE_USER_HOME} /.android
 
 USER jenkins
+
+# 可选：预安装 Jenkins 插件
+RUN jenkins-plugin-cli --plugins  \
+  git \
+  maven-plugin \
+  gradle \
+  nodejs \
+  ws-cleanup \
+  blueocean \
+  locale \
+  ssh-steps \
+  publish-over-ssh \
+  pipeline-utility-steps \
+  pipeline-maven \
+  pipeline-maven-api \
+  pipeline-model-api \
+  pipeline-model-definition \
+  pipeline-model-extensions \
+  workflow-durable-task-step \
+  docker-plugin \
+  docker-workflow
