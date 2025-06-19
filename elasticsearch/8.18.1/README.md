@@ -1,4 +1,4 @@
-# es8.11.4
+# es8.18.1
 
 
 ```shell
@@ -17,7 +17,7 @@ docker exec -it [your elasticsearch docker name] bash
 # install analysis-ik plugin
 mkdir -p /tmp/ik && \
     cd /tmp/ik && \
-    curl -L -o ik.zip https://release.infinilabs.com/analysis-ik/stable/elasticsearch-analysis-ik-8.11.4.zip && \
+    curl -L -o ik.zip https://release.infinilabs.com/analysis-ik/stable/elasticsearch-analysis-ik-8.18.1.zip && \
     unzip ik.zip -d /usr/share/elasticsearch/plugins/ik && \
     rm ik.zip
 
