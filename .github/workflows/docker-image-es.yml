@@ -1,4 +1,4 @@
-name: Docker Image Reids  CI
+name: Docker Image ES  CI
 on:
   workflow_dispatch: #github页面手动触发
   push:
