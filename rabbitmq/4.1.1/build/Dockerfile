@@ -5,6 +5,7 @@ FROM rabbitmq:4.1.1-management
 LABEL maintainer="blankhang <blankhang@gmail.comm>"
 
 ENV VERSION=4.1.1
+ENV DELAYED_MESSAGE_EXCHANGE_VERSION=4.1.0
 ENV TZ=Asia/Shanghai \
     DEBIAN_FRONTEND=noninteractive
 
@@ -15,6 +16,9 @@ RUN apt update && apt install -y curl tzdata \
     && dpkg-reconfigure --frontend noninteractive tzdata \
     && rm -rf /var/lib/apt/lists/*
 
+RUN curl -L https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases/download/v${DELAYED_MESSAGE_EXCHANGE_VERSION}/rabbitmq_delayed_message_exchange-${DELAYED_MESSAGE_EXCHANGE_VERSION}.ez > $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-${VERSION}.ez
+
+RUN chown rabbitmq:rabbitmq $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-${DELAYED_MESSAGE_EXCHANGE_VERSION}.ez
 
 RUN rabbitmq-plugins enable --offline rabbitmq_delayed_message_exchange rabbitmq_consistent_hash_exchange rabbitmq_mqtt rabbitmq_web_mqtt rabbitmq_web_stomp
 
