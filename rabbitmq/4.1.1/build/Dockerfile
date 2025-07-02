@@ -15,9 +15,6 @@ RUN apt update && apt install -y curl tzdata \
     && dpkg-reconfigure --frontend noninteractive tzdata \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -L https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases/download/v${VERSION}/rabbitmq_delayed_message_exchange-${VERSION}.ez > $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-${VERSION}.ez
-
-RUN chown rabbitmq:rabbitmq $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-${VERSION}.ez
 
 RUN rabbitmq-plugins enable --offline rabbitmq_delayed_message_exchange rabbitmq_consistent_hash_exchange rabbitmq_mqtt rabbitmq_web_mqtt rabbitmq_web_stomp
 
