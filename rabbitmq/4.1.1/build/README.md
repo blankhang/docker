@@ -13,6 +13,6 @@
 - rabbitmq_shovel_management
 
 ```bash
-docker image build -t blankhang/rabbitmq:4.1.0-management .
+docker image build -t blankhang/rabbitmq:4.1.1-management .
 ```
 ---

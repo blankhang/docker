@@ -1,0 +1,73 @@
+version: "3.9"
+services:
+  rabbit1:
+    image: blankhang/rabbitmq:4.1.1-management
+    hostname: rabbit1
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
+      RABBITMQ_NODENAME: rabbit1
+    configs:
+      - source: rabbitmq_conf
+        target: /etc/rabbitmq/rabbitmq.conf
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
+    ports:
+      - "15672:15672"
+    networks:
+      - rabbitmq-compose
+
+  rabbit2:
+    image: blankhang/rabbitmq:4.1.1-management
+    hostname: rabbit2
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
+      RABBITMQ_NODENAME: rabbit2
+    configs:
+      - source: rabbitmq_conf
+        target: /etc/rabbitmq/rabbitmq.conf
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
+    networks:
+      - rabbitmq-compose
+
+  rabbit3:
+    image: blankhang/rabbitmq:4.1.1-management
+    hostname: rabbit3
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "rabbitmq-cluster-cookie"
+      RABBITMQ_NODENAME: rabbit3
+    configs:
+      - source: rabbitmq_conf
+        target: /etc/rabbitmq/rabbitmq.conf
+    volumes:
+      - /docker/rabbitmq/data:/var/lib/rabbitmq
+    networks:
+      - rabbitmq-compose
+
+
+configs:
+  rabbitmq_conf:
+    file: ./conf/rabbitmq.conf
+
+
+networks:
+  rabbitmq-compose:
+    driver: bridge
