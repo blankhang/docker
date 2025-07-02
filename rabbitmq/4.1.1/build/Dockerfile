@@ -24,10 +24,10 @@ RUN apk update && \
                                 rabbitmq_consistent_hash_exchange \
                                 rabbitmq_mqtt \
                                 rabbitmq_web_mqtt \
-                                rabbitmq_web_stomp \
+                                rabbitmq_web_stomp
 
 #/etc/rabbitmq/enabled_plugins
 ADD config/enabled_plugins /etc/rabbitmq/enabled_plugins
 
-# 可选配置文件
+# config file
 ADD config/rabbitmq.conf /etc/rabbitmq/rabbitmq.conf
