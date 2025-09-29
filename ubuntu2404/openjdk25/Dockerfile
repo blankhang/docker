@@ -26,8 +26,8 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 RUN set -eux; \
     ARCH="$(uname -m)"; \
     case "$ARCH" in \
-      x86_64)    JDK_URL="https://download.java.net/java/GA/jdk25/latest/binaries/openjdk-25_linux-x64_bin.tar.gz" ;; \
-      aarch64)   JDK_URL="https://download.java.net/java/GA/jdk25/latest/binaries/openjdk-25_linux-aarch64_bin.tar.gz" ;; \
+      x86_64)    JDK_URL="https://download.oracle.com/java/25/latest/jdk-25_linux-x64_bin.tar.gz" ;; \
+      aarch64)   JDK_URL="https://download.oracle.com/java/25/latest/jdk-25_linux-aarch64_bin.tar.gz" ;; \
       *) echo "Unsupported architecture: $ARCH"; exit 1 ;; \
     esac; \
     mkdir -p /usr/lib/jvm; \
