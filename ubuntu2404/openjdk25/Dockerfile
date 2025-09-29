@@ -10,7 +10,7 @@ ENV LANG=zh_CN.UTF-8 \
     LC_ALL=zh_CN.UTF-8 \
     TZ=Asia/Shanghai
 
-# 安装必要工具：wget、ca-certificates、locales、tzdata
+# 安装必要工具
 RUN apt-get -qq update \
   && apt-get install -qqy --no-install-recommends \
     wget ca-certificates locales tzdata \
@@ -18,16 +18,24 @@ RUN apt-get -qq update \
   && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
   && echo "Asia/Shanghai" > /etc/timezone
 
-# 安装 OpenJDK 25 (官方 tar.gz)
+# 设置 JDK 环境变量
 ENV JAVA_HOME=/usr/lib/jvm/jdk-25
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-RUN mkdir -p /usr/lib/jvm \
-  && cd /usr/lib/jvm \
-  && wget -q https://download.java.net/java/GA/jdk25/latest/binaries/openjdk-25_linux-x64_bin.tar.gz \
-  && tar -xzf openjdk-25_linux-x64_bin.tar.gz \
-  && rm openjdk-25_linux-x64_bin.tar.gz \
-  && mv jdk-25* jdk-25
+# 根据架构下载对应的 OpenJDK 25
+RUN set -eux; \
+    ARCH="$(uname -m)"; \
+    case "$ARCH" in \
+      x86_64)    JDK_URL="https://download.java.net/java/GA/jdk25/latest/binaries/openjdk-25_linux-x64_bin.tar.gz" ;; \
+      aarch64)   JDK_URL="https://download.java.net/java/GA/jdk25/latest/binaries/openjdk-25_linux-aarch64_bin.tar.gz" ;; \
+      *) echo "Unsupported architecture: $ARCH"; exit 1 ;; \
+    esac; \
+    mkdir -p /usr/lib/jvm; \
+    cd /usr/lib/jvm; \
+    wget -q "$JDK_URL" -O openjdk-25.tar.gz; \
+    tar -xzf openjdk-25.tar.gz; \
+    rm openjdk-25.tar.gz; \
+    mv jdk-25* jdk-25
 
 # 验证安装
 RUN java -version && javac -version
