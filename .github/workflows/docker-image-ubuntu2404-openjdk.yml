@@ -89,20 +89,20 @@ jobs:
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
 
-#
-#    - name: Build openjdk25 and push
-#      id: openjdk25_build
-#      uses: docker/build-push-action@v4
-#      with:
-#        builder: ${{ steps.buildx.outputs.name }}
-#        context: ./${{ env.IMAGE }}
-#        file: ./${{ env.IMAGE }}/openjdk25/Dockerfile
-#        platforms: linux/amd64,linux/arm/v7,linux/arm64
-#        #,linux/ppc64le,linux/s390x
-#        cache-from: type=gha
-#        cache-to: type=gha,mode=max
-#        push: true
-#        tags: ${{ env.IMAGE_NAME_OPENJDK25 }}
-#
-#    - name: Image digest
-#      run: echo ${{ steps.docker_build.outputs.digest }}
+
+    - name: Build openjdk25 and push
+      id: openjdk25_build
+      uses: docker/build-push-action@v4
+      with:
+        builder: ${{ steps.buildx.outputs.name }}
+        context: ./${{ env.IMAGE }}
+        file: ./${{ env.IMAGE }}/openjdk25/Dockerfile
+        platforms: linux/amd64,linux/arm/v7,linux/arm64
+        #,linux/ppc64le,linux/s390x
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        push: true
+        tags: ${{ env.IMAGE_NAME_OPENJDK25 }}
+
+    - name: Image digest
+      run: echo ${{ steps.docker_build.outputs.digest }}
