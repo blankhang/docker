@@ -11,7 +11,6 @@ env:
   IMAGE_NAME: blankhang/jenkins
   IMAGE_JDK_21_NAME: blankhang/jenkins:lts-jdk21
   IMAGE_JDK_21_LATEST: blankhang/jenkins:latest
-  IMAGE_ANDROID_JDK_21_NAME: blankhang/jenkins:lts-android-jdk21
 
 jobs:
   build:
@@ -53,24 +52,6 @@ jobs:
             ${{ env.IMAGE_JDK_21_NAME }}
             ${{ env.IMAGE_JDK_21_LATEST }}
 
-      - name: Build android-jdk21 image and push
-        id: build_android_jdk21
-        uses: docker/build-push-action@v5
-        with:
-          builder: ${{ steps.buildx.outputs.name }}
-          context: ./${{ env.IMAGE }}/build
-          file: ./${{ env.IMAGE }}/build/android/jdk21.Dockerfile
-          platforms: linux/amd64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          push: true
-          tags: ${{ env.IMAGE_ANDROID_JDK_21_NAME }}
-
-      - name: Image digests
-        run: |
-          echo "JDK21 digest: ${{ steps.build_jdk21.outputs.digest }}"
-          echo "Android JDK21 digest: ${{ steps.build_android_jdk21.outputs.digest }}"
-
       - name: Login to AliDockerHub
         uses: docker/login-action@v3
         with:
@@ -82,12 +63,9 @@ jobs:
         run: |
           docker pull ${{ env.IMAGE_JDK_21_NAME }}
           docker pull ${{ env.IMAGE_JDK_21_LATEST }}
-          docker pull ${{ env.IMAGE_ANDROID_JDK_21_NAME }}
 
           docker tag ${{ env.IMAGE_JDK_21_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk21
           docker tag ${{ env.IMAGE_JDK_21_LATEST }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:latest
-          docker tag ${{ env.IMAGE_ANDROID_JDK_21_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-android-jdk21
 
           docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk21
           docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:latest
-          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-android-jdk21

@@ -8,11 +8,11 @@ ENV TZ=Asia/Shanghai
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
-ENV GRADLE_VERSION=8.14.2
 ENV NODEJS_VERSION=22
+ENV GRADLE_VERSION=8.14.2
 ENV GRADLE_USER_HOME=/.gradle
 ENV GRADLE_HOME=/opt/gradle
-ENV ANDROID_HOME=/usr/lib/android-sdk/
+#ENV ANDROID_HOME=/usr/lib/android-sdk/
 
 # 安装基本工具 + 中文字体支持 + Docker CLI
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -58,7 +58,7 @@ RUN mkdir -p ${GRADLE_USER_HOME}/caches /.android \
 USER jenkins
 
 # 可选：预安装 Jenkins 插件
-RUN jenkins-plugin-cli --plugins  \
+RUN jenkins-plugin-cli --plugins \
   git \
   maven-plugin \
   gradle \
