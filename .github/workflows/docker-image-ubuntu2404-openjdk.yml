@@ -43,19 +43,19 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build openjdk11 and push
-      id: openjdk11_build
-      uses: docker/build-push-action@v4
-      with:
-        builder: ${{ steps.buildx.outputs.name }}
-        context: ./${{ env.IMAGE }}
-        file: ./${{ env.IMAGE }}/openjdk11/Dockerfile
-        platforms: linux/amd64,linux/arm64
-        #,linux/ppc64le,linux/s390x
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        push: true
-        tags: ${{ env.IMAGE_NAME_OPENJDK11 }}
+#    - name: Build openjdk11 and push
+#      id: openjdk11_build
+#      uses: docker/build-push-action@v4
+#      with:
+#        builder: ${{ steps.buildx.outputs.name }}
+#        context: ./${{ env.IMAGE }}
+#        file: ./${{ env.IMAGE }}/openjdk11/Dockerfile
+#        platforms: linux/amd64,linux/arm64
+#        #,linux/ppc64le,linux/s390x
+#        cache-from: type=gha
+#        cache-to: type=gha,mode=max
+#        push: true
+#        tags: ${{ env.IMAGE_NAME_OPENJDK11 }}
 
     - name: Build openjdk17 and push
       id: openjdk17_build
