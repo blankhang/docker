@@ -6,6 +6,6 @@ LABEL maintainer="blankhang <blankhang@gmail.com>" \
 # All of the necessary packages required apparently. Might want to confirm
 # which are actually needed.
 RUN apt update -qq \
- && apt install -qqy --no-install-recommends openjdk-25-jdk ca-certificates-java \
+ && DEBIAN_FRONTEND=noninteractive apt install -qqy --no-install-recommends openjdk-25-jdk ca-certificates-java \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
  && /var/lib/dpkg/info/ca-certificates-java.postinst configure
