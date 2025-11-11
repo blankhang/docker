@@ -2,8 +2,9 @@
 ## 支持 arm64 amd64 架构的 rabbitmq:3.13-management GMT+8时区的底包镜像 添加启用延迟队列插件
 source code at https://github.com/blankhang/docker/tree/master/ubuntu2204
 
-### 基于官方 rabbitmq 3.13-management 版本
+### 基于官方 rabbitmq 4.1.1-management alpine 版本
 ### 默认启用如下插件
+### By default, the following plug-ins are enabled
 - rabbitmq_management
 - rabbitmq_management_agent
 - rabbitmq_consistent_hash_exchange

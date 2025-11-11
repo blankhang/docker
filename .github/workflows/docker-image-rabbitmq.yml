@@ -9,7 +9,7 @@ on:
 env:
   IMAGE: rabbitmq
   IMAGE_NAME: blankhang/rabbitmq # 镜像名
-  IMAGE_VERSION: 4.1.1 # 版本号
+  IMAGE_VERSION: 4.2.0 # 版本号
 
 jobs:
 
