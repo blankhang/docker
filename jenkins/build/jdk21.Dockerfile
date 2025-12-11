@@ -9,7 +9,7 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
 ENV NODEJS_VERSION=22
-ENV GRADLE_VERSION=8.14.2
+ENV GRADLE_VERSION=9.2.1
 ENV GRADLE_USER_HOME=/.gradle
 ENV GRADLE_HOME=/opt/gradle
 #ENV ANDROID_HOME=/usr/lib/android-sdk/
@@ -23,12 +23,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 Docker CLI
-RUN wget http://get.docker.com/builds/Linux/x86_64/docker-latest.tgz \
-      && tar -xvzf docker-latest.tgz \
-      && mv docker/docker /usr/local/bin \
-      && rm -rf docker docker-latest.tgz \
-      && rm -rf /var/lib/apt/lists/*
 
 # 安装 Docker CLI，跳过守护进程（dockerd）
 #RUN mkdir -p /etc/apt/keyrings \
@@ -38,6 +32,14 @@ RUN wget http://get.docker.com/builds/Linux/x86_64/docker-latest.tgz \
 #    && apt-get update && apt-get install -y docker-ce-cli \
 #    && usermod -a -G docker jenkins \
 #    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+# ✅ 使用 Docker 官方源安装最新 CLI
+RUN mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bullseye stable" \
+        > /etc/apt/sources.list.d/docker.list \
+    && apt-get update && apt-get install -y docker-ce-cli \
+    && usermod -a -G docker jenkins \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # 安装 Node.js（使用 NodeSource） + Yarn + pnpm
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - \
