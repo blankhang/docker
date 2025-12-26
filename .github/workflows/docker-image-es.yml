@@ -13,7 +13,7 @@ on:
 env:
   IMAGE: elasticsearch # 镜像
   IMAGE_NAME: blankhang/elasticsearch #这是您的镜像名
-  IMAGE_VERSION: 8.19.9 # 版本号
+  IMAGE_VERSION: 9.2.3 # 版本号
   
 jobs:
 
