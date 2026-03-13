@@ -5,13 +5,13 @@
 #create data dirs and set up permission
 mkdir -p data-kibana
 mkdir -p data-elasticsearch
-sudo chmod -R 777 data-*
+sudo chmod -R 1000:1000 data-*
 
 #run
 docker-compose up -d
 
 
-#  run 
+# run 
 docker exec -it [your elasticsearch docker name] bash
 
 # install analysis-ik plugin
