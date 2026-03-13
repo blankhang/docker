@@ -1,5 +1,5 @@
 FROM jenkins/jenkins:lts-jdk25
-MAINTAINER blankhang@gmail.com
+LABEL org.opencontainers.image.authors="blankhang@gmail.com"
 
 USER root
 
