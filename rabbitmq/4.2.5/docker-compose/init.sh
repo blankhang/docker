@@ -11,7 +11,7 @@ echo -e "\033[36m creating rabbimtq.conf \033[0m"
 cat << 'EOF' > /docker/rabbimtq/conf/rabbimtq.cnf
 loopback_users.guest = false
 listeners.tcp.default = 5672
-management.listener.port = 15672
+management.tcp.port = 15672
 hipe_compile = false
 default_user = admin
 default_pass = admin
