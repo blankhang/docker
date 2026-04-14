@@ -4,7 +4,6 @@ FROM rabbitmq:4.2.5-management
 LABEL maintainer="blankhang <blankhang@gmail.com>"
 
 ENV VERSION=4.2.5
-ENV DELAYED_MESSAGE_EXCHANGE_VERSION=4.2.5
 
 # ✅ 设置 UTF-8 locale 和时区，修复 latin1 警告
 ENV LANG=C.UTF-8 \
@@ -22,15 +21,8 @@ RUN apt update && apt install -y curl tzdata locales \
     && update-locale LANG=C.UTF-8 \
     && rm -rf /var/lib/apt/lists/*
 
-# 下载并启用 rabbitmq_delayed_message_exchange 插件
-RUN curl -L \
-      https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases/download/v${DELAYED_MESSAGE_EXCHANGE_VERSION}/rabbitmq_delayed_message_exchange-${DELAYED_MESSAGE_EXCHANGE_VERSION}.ez \
-      -o $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-${DELAYED_MESSAGE_EXCHANGE_VERSION}.ez \
-    && chown rabbitmq:rabbitmq $RABBITMQ_HOME/plugins/rabbitmq_delayed_message_exchange-${DELAYED_MESSAGE_EXCHANGE_VERSION}.ez
-
 # 启用插件（离线模式）
 RUN rabbitmq-plugins enable --offline \
-      rabbitmq_delayed_message_exchange \
       rabbitmq_consistent_hash_exchange \
       rabbitmq_mqtt \
       rabbitmq_web_mqtt \
