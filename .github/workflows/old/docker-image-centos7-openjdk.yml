@@ -25,27 +25,27 @@ jobs:
       TZ: Asia/Shanghai
     steps:
     - name: Checkout Repo
-      uses: actions/checkout@v3.5.3
+      uses: actions/checkout@v6
 
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@v2
+      uses: docker/setup-qemu-action@v4
       with:
         platforms: all
 
     - name: Set up Docker Buildx
       id: buildx
-      uses: docker/setup-buildx-action@v2
+      uses: docker/setup-buildx-action@v4
 
     - name: Docker Login
       #if: github.event_name !='pull_request'
-      uses: docker/login-action@v2.2.0
+      uses: docker/login-action@v4
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build openjdk8 and push
       id: openjdk8_build
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@v7
       with:
         builder: ${{ steps.buildx.outputs.name }}
         context: ./${{ env.IMAGE }}
@@ -59,7 +59,7 @@ jobs:
 
     - name: Build openjdk11 and push
       id: openjdk11_build
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@v7
       with:
         builder: ${{ steps.buildx.outputs.name }}
         context: ./${{ env.IMAGE }}
@@ -73,7 +73,7 @@ jobs:
 
     - name: Build openjdk17 and push
       id: openjdk17_build
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@v7
       with:
         builder: ${{ steps.buildx.outputs.name }}
         context: ./${{ env.IMAGE }}
@@ -86,7 +86,7 @@ jobs:
 
     - name: Build openjdk21 and push
       id: openjdk21_build
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@v7
       with:
         builder: ${{ steps.buildx.outputs.name }}
         context: ./${{ env.IMAGE }}
@@ -99,4 +99,4 @@ jobs:
 
 
     - name: Image digest
-      run: echo ${{ steps.docker_build.outputs.digest }}
+      run: echo ${{ steps.openjdk21_build.outputs.digest }}
