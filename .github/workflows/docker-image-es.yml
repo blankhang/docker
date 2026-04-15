@@ -14,7 +14,7 @@ env:
   IMAGE: elasticsearch # 镜像
   IMAGE_NAME: blankhang/elasticsearch #这是您的镜像名
   IMAGE_VERSION: 9.3.3 # 版本号
-  
+
 jobs:
 
   build:
@@ -22,57 +22,69 @@ jobs:
     env:
       TZ: Asia/Shanghai
     steps:
-    - name: Checkout Repo
-      uses: actions/checkout@v6
+      - name: Checkout Repo
+        uses: actions/checkout@v6
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v4
-      with:
-        platforms: all
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: all
 
-    - name: Set up Docker Buildx
-      id: buildx
-      uses: docker/setup-buildx-action@v4
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v4
 
-    - name: Docker Login
-      uses: docker/login-action@v4
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Docker Login
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build and push
-      id: docker_build
-      uses: docker/build-push-action@v7
-      with:
-        builder: ${{ steps.buildx.outputs.name }}
-        context: ./${{ env.IMAGE }}/${{ env.IMAGE_VERSION }}/build/
-        file: ./${{ env.IMAGE }}//${{ env.IMAGE_VERSION }}/build/Dockerfile
-        platforms: linux/amd64,linux/arm64
-        #,linux/ppc64le,linux/s390x
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        push: true
-        tags: |
-          ${{ env.IMAGE_NAME }}:latest
-          ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v7
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: ./${{ env.IMAGE }}/${{ env.IMAGE_VERSION }}/build/
+          file: ./${{ env.IMAGE }}/${{ env.IMAGE_VERSION }}/build/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          #,linux/ppc64le,linux/s390x
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
 
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
 
-    - name: Image digest
-      run: echo ${{ steps.docker_build.outputs.digest }}
+      # docker/login-action 的 registry 须为纯主机名；secret 若写 https:// 会导致鉴权失败。
+      # tag/push 仍用去掉协议后的完整前缀（可含 ACR 命名空间路径）。
+      - name: Resolve Ali registry
+        id: ali_registry
+        run: |
+          raw='${{ secrets.ALI_DOCKER_HUB_REGISTRY }}'
+          prefix="${raw#https://}"
+          prefix="${prefix#http://}"
+          host="${prefix%%/*}"
+          echo "host=${host}" >> "$GITHUB_OUTPUT"
+          echo "prefix=${prefix}" >> "$GITHUB_OUTPUT"
 
-    - name: Login to AliDockerHub
-      uses: docker/login-action@v4
-      with:
-        registry: ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}
-        username: ${{ secrets.ALI_DOCKER_HUB_USN }}
-        password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
+      - name: Login to AliDockerHub
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ steps.ali_registry.outputs.host }}
+          username: ${{ secrets.ALI_DOCKER_HUB_USN }}
+          password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
 
-    - name: ReTag and push to AliDockerHub
-      run: |
-        docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
+      - name: ReTag and push to AliDockerHub
+        run: |
+          PREFIX="${{ steps.ali_registry.outputs.prefix }}"
+          docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
 
-        docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
-        docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
-        
-        docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
-        docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
+          docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} ${PREFIX}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
+          docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} ${PREFIX}/blankhang/${{ env.IMAGE }}:latest
+
+          docker push ${PREFIX}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
+          docker push ${PREFIX}/blankhang/${{ env.IMAGE }}:latest
