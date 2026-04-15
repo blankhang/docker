@@ -59,32 +59,19 @@ jobs:
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
 
-      # docker/login-action 的 registry 须为纯主机名；secret 若写 https:// 会导致鉴权失败。
-      # tag/push 仍用去掉协议后的完整前缀（可含 ACR 命名空间路径）。
-      - name: Resolve Ali registry
-        id: ali_registry
-        run: |
-          raw='${{ secrets.ALI_DOCKER_HUB_REGISTRY }}'
-          prefix="${raw#https://}"
-          prefix="${prefix#http://}"
-          host="${prefix%%/*}"
-          echo "host=${host}" >> "$GITHUB_OUTPUT"
-          echo "prefix=${prefix}" >> "$GITHUB_OUTPUT"
-
       - name: Login to AliDockerHub
         uses: docker/login-action@v4
         with:
-          registry: ${{ steps.ali_registry.outputs.host }}
+          registry: ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}
           username: ${{ secrets.ALI_DOCKER_HUB_USN }}
           password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
 
       - name: ReTag and push to AliDockerHub
         run: |
-          PREFIX="${{ steps.ali_registry.outputs.prefix }}"
           docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
 
-          docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} ${PREFIX}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
-          docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} ${PREFIX}/blankhang/${{ env.IMAGE }}:latest
-
-          docker push ${PREFIX}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
-          docker push ${PREFIX}/blankhang/${{ env.IMAGE }}:latest
+          docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
+          docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
+          
+          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
+          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
