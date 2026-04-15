@@ -1,0 +1,139 @@
+
+services:
+  rabbit1:
+    image: blankhang/rabbitmq:4.2.5-management
+    hostname: rabbit1
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
+    environment:
+      RABBITMQ_NODENAME: rabbit1@rabbit1
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - 'node.hostname == vm-1'
+      restart_policy:
+        condition: any
+      update_config:
+        parallelism: 1
+        monitor: 10s
+        order: stop-first
+    volumes:
+      - /docker/rabbitmq/rabbitmq-prod-stack/data-rabbitmq-1:/var/lib/rabbitmq
+    ports:
+      - "5671:5672"
+      - "15672:15672"
+      - "15673:15674"
+    configs:
+      - source: rabbitmq_config
+        target: /etc/rabbitmq/rabbitmq.conf
+    secrets:
+      - source: rabbitmq_erlang_cookie
+        target: /var/lib/rabbitmq/.erlang.cookie
+    networks:
+      - rabbitmq-prod
+
+
+  rabbit2:
+    image: blankhang/rabbitmq:4.2.5-management
+    hostname: rabbit2
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
+    environment:
+      RABBITMQ_NODENAME: rabbit2@rabbit2
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - 'node.hostname == vm-2'
+      restart_policy:
+        condition: any
+      update_config:
+        parallelism: 1
+        monitor: 10s
+        order: stop-first
+    volumes:
+      - /docker/rabbitmq/rabbitmq-prod-stack/data-rabbitmq-2:/var/lib/rabbitmq
+    ports:
+      - "25671:5672"
+      - "25672:15672"
+      - "25673:15674"
+    # command:
+    #   - /bin/sh
+    #   - -c
+    #   - |
+    #     sleep 30
+    #     /opt/rabbitmq/sbin/rabbitmqctl stop_app
+    #     /opt/rabbitmq/sbin/rabbitmqctl reset
+    #     /opt/rabbitmq/sbin/rabbitmqctl join_cluster rabbit1@rabbit1
+    #     /opt/rabbitmq/sbin/rabbitmqctl start_app
+    #
+    configs:
+      - source: rabbitmq_config
+        target: /etc/rabbitmq/rabbitmq.conf
+    secrets:
+      - source: rabbitmq_erlang_cookie
+        target: /var/lib/rabbitmq/.erlang.cookie
+    networks:
+      - rabbitmq-prod
+
+
+  rabbit3:
+    image: blankhang/rabbitmq:4.2.5-management
+    hostname: rabbit3
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
+    environment:
+      RABBITMQ_NODENAME: rabbit3@rabbit3
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - 'node.hostname == vm-3'
+      restart_policy:
+        condition: any
+      update_config:
+        parallelism: 1
+        monitor: 10s
+        order: stop-first
+    volumes:
+      - /docker/rabbitmq/rabbitmq-prod-stack/data-rabbitmq-3:/var/lib/rabbitmq
+    ports:
+      - "35671:5672"
+      - "35672:15672"
+      - "35673:15674"
+    configs:
+      - source: rabbitmq_config
+        target: /etc/rabbitmq/rabbitmq.conf
+    secrets:
+      - source: rabbitmq_erlang_cookie
+        target: /var/lib/rabbitmq/.erlang.cookie
+    networks:
+      - rabbitmq-prod
+
+networks:
+  rabbitmq-prod:
+    driver: overlay
+
+secrets:
+  #  rabbitmq_definitions:
+  #    file: ./rabbitmq_definitions.json
+
+  rabbitmq_erlang_cookie:
+    file: ./conf/rabbitmq_erlang_cookie.txt
+
+configs:
+  rabbitmq_config:
+    file: ./conf/rabbitmq.conf
