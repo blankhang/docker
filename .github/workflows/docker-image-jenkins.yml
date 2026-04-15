@@ -1,10 +1,10 @@
 name: Docker Image Jenkins CI
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: #github页面手动触发
   push:
     tags:
-      - "v*.*"
+      - "v*.*" # 当发布 tag 时触发自动构建
 
 env:
   IMAGE: jenkins
@@ -64,6 +64,9 @@ jobs:
           tags: |
             ${{ env.IMAGE_JDK_25_NAME }}
             ${{ env.IMAGE_JDK_LATEST }}
+
+      - name: Image digest
+        run: echo ${{ steps.build_jdk25.outputs.digest }}
 
       - name: Login to AliDockerHub
         uses: docker/login-action@v4
