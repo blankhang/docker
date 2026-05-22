@@ -7,6 +7,7 @@ on:
       - "v*.*" # 当发布 tag 时触发自动构建
 
 env:
+  IMAGE_ROOT: software
   IMAGE: jenkins
   IMAGE_NAME: blankhang/jenkins
   IMAGE_VERSION: lts-jdk25  # JDK 25 版本标识
@@ -55,8 +56,8 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           builder: ${{ steps.buildx.outputs.name }}
-          context: ./${{ env.IMAGE }}/build
-          file: ./${{ env.IMAGE }}/build/jdk25.Dockerfile
+          context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/build
+          file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/build/jdk25.Dockerfile
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
