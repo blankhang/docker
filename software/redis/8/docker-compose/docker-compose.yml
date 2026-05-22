@@ -1,0 +1,21 @@
+services:
+
+  redis:
+    image: redis:8.6.2
+    restart: always
+    container_name: redis
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 60s
+      timeout: 3s
+      retries: 3
+    ports:
+      - "55002:6379"
+    volumes:
+
+      - '/docker/redis/8/conf/redis.conf:/usr/local/etc/redis/redis.conf'
+      - 'redis_data:/data'
+    command: redis-server /usr/local/etc/redis/redis.conf
+    #command: redis-server --appendonly yes --requirepass "changeme"
+    environment:
+      - TZ=Asia/Shanghai
