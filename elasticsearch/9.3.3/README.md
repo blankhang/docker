@@ -1,29 +1,23 @@
-# Elasticsearch / Kibana 9.3.3（Docker Compose）
+# Elasticsearch / Kibana 9.3.3
 
+| 目录 | 用途 |
+|------|------|
+| `build/` | 自定义镜像（含 IK 分词） |
+| `docker-compose/` | 单机 Compose 开发/测试 |
+| `docker-stack/` | Swarm 三节点生产栈 |
+
+## Docker Compose（单机）
 
 ```shell
-#create data dirs and set up permission
-mkdir -p data-kibana
-mkdir -p data-elasticsearch
+cd docker-compose
+
+mkdir -p data-kibana data-elasticsearch
 sudo chmod -R 1000:1000 data-*
 
-#run
-docker-compose up -d
-
-
-# run 
-docker exec -it [your elasticsearch docker name] bash
-
-# install analysis-ik plugin
-mkdir -p /tmp/ik && \
-    cd /tmp/ik && \
-    curl -L -o ik.zip https://release.infinilabs.com/analysis-ik/stable/elasticsearch-analysis-ik-9.3.3.zip && \
-    unzip ik.zip -d /usr/share/elasticsearch/plugins/ik && \
-    rm ik.zip
-
-# run to config your es/logstash/kibana/etc... password
-/usr/share/elasticsearch/bin/elasticsearch-setup-passwords interactive
-
-# or run to just config only kibana_system's password
-/usr/share/elasticsearch/bin/elasticsearch-reset-password -u kibana_system
+# 修改 .env 中的 ELASTIC_PASSWORD、KIBANA_PASSWORD
+docker compose up -d
 ```
+
+## 自定义镜像构建
+
+见 `build/Dockerfile`；CI 见 `.github/workflows/docker-image-es.yml`。
