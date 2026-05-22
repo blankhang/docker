@@ -1,0 +1,58 @@
+name: Docker Image Ubuntu2604 Openjdk CI
+on:
+  workflow_dispatch: #github页面手动触发
+  push:
+    tags:
+      - "v*.*" # github 发布tag时触发自动构建
+# on:
+#   push:
+#     branches: [ "master" ]
+#   pull_request:
+#     branches: [ "master" ]
+
+env:
+  IMAGE: ubuntu2604
+  IMAGE_NAME_OPENJDK25: blankhang/ubuntu2604:openjdk25 #这是您的镜像名
+
+jobs:
+
+  build:
+    runs-on: ubuntu-22.04
+    env:
+      TZ: Asia/Shanghai
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v6
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v4
+      with:
+        platforms: all
+
+    - name: Set up Docker Buildx
+      id: buildx
+      uses: docker/setup-buildx-action@v4
+
+    - name: Docker Login
+      #if: github.event_name !='pull_request'
+      uses: docker/login-action@v4
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build openjdk25 and push
+      id: openjdk25_build
+      uses: docker/build-push-action@v7
+      with:
+        builder: ${{ steps.buildx.outputs.name }}
+        context: ./${{ env.IMAGE }}
+        file: ./${{ env.IMAGE }}/openjdk25/Dockerfile
+        platforms: linux/amd64,linux/arm64
+        #,linux/ppc64le,linux/s390x
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        push: true
+        tags: ${{ env.IMAGE_NAME_OPENJDK25 }}
+
+    - name: Image digest
+      run: echo ${{ steps.openjdk25_build.outputs.digest }}
