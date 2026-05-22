@@ -11,6 +11,7 @@ on:
 #     branches: [ "master" ]
 
 env:
+  IMAGE_ROOT: software
   IMAGE: redis # 镜像
   IMAGE_NAME: blankhang/redis #这是您的镜像名
   IMAGE_VERSION: 8 # 版本号
@@ -45,8 +46,8 @@ jobs:
       uses: docker/build-push-action@v7
       with:
         builder: ${{ steps.buildx.outputs.name }}
-        context: ./${{ env.IMAGE }}/${{ env.IMAGE_VERSION }}/build/
-        file: ./${{ env.IMAGE }}//${{ env.IMAGE_VERSION }}/build/Dockerfile
+        context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/${{ env.IMAGE_VERSION }}/build/
+        file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/${{ env.IMAGE_VERSION }}/build/Dockerfile
         platforms: linux/amd64,linux/arm/v7,linux/arm64
         #,linux/ppc64le,linux/s390x
         cache-from: type=gha

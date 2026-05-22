@@ -11,6 +11,7 @@ on:
 #     branches: [ "master" ]
 
 env:
+  IMAGE_ROOT: operation-system
   IMAGE: alpine319
   IMAGE_NAME_OPENJDK8: blankhang/alpine319:openjdk8 #这是您的镜像名
   IMAGE_NAME_OPENJDK11: blankhang/alpine319:openjdk11 #这是您的镜像名
@@ -48,8 +49,8 @@ jobs:
       uses: docker/build-push-action@v7
       with:
         builder: ${{ steps.buildx.outputs.name }}
-        context: ./${{ env.IMAGE }}
-        file: ./${{ env.IMAGE }}/openjdk8/Dockerfile
+        context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}
+        file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/openjdk8/Dockerfile
         platforms: linux/amd64
         #,linux/arm64,linux/ppc64le,linux/s390x
         cache-from: type=gha
@@ -62,8 +63,8 @@ jobs:
       uses: docker/build-push-action@v7
       with:
         builder: ${{ steps.buildx.outputs.name }}
-        context: ./${{ env.IMAGE }}
-        file: ./${{ env.IMAGE }}/openjdk11/Dockerfile
+        context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}
+        file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/openjdk11/Dockerfile
         platforms: linux/amd64
         #,linux/arm64,linux/ppc64le,linux/s390x
         cache-from: type=gha
@@ -76,8 +77,8 @@ jobs:
       uses: docker/build-push-action@v7
       with:
         builder: ${{ steps.buildx.outputs.name }}
-        context: ./${{ env.IMAGE }}
-        file: ./${{ env.IMAGE }}/openjdk17/Dockerfile
+        context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}
+        file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/openjdk17/Dockerfile
         platforms: linux/amd64
         #,linux/arm64,linux/ppc64le,linux/s390x
         cache-from: type=gha
@@ -90,8 +91,8 @@ jobs:
       uses: docker/build-push-action@v7
       with:
         builder: ${{ steps.buildx.outputs.name }}
-        context: ./${{ env.IMAGE }}
-        file: ./${{ env.IMAGE }}/openjdk21/Dockerfile
+        context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}
+        file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/openjdk21/Dockerfile
         platforms: linux/amd64
         #,linux/arm64,linux/ppc64le,linux/s390x
         cache-from: type=gha

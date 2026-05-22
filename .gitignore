@@ -201,5 +201,5 @@ Temporary Items
 
 # JRebel config file
 rebel.xml
-/mysql/data/
-/mysql/log/
+/software/mysql/data/
+/software/mysql/log/

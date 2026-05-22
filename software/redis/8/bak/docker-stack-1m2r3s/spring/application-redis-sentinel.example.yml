@@ -1,0 +1,26 @@
+# Spring Boot 4 + Jedis + Redis Sentinel（xhc-api dev-prod-sz）
+# 官方客户端流程: SENTINEL GET-MASTER-ADDR-BY-NAME → 连接 master → ROLE 校验
+# https://redis.io/docs/latest/develop/reference/sentinel-clients/
+# 仅配 sentinel.nodes 公网 :55503；勿直连 55502 或 overlay 10.0.x.x:6379
+
+spring:
+  data:
+    redis:
+      database: 0
+      password: ${REDIS_PASSWORD}
+      connect-timeout: 60s
+      timeout: 60s
+      client-type: Jedis
+      Jedis:
+        pool:
+          min-idle: 2
+          max-idle: 20
+          max-active: 50
+          max-wait: -1ms
+      sentinel:
+        master: myMaster
+        nodes:
+          - 120.24.64.42:55503     # sz-1 公网
+          - 120.79.138.3:55503     # sz-2 公网
+          - 120.76.239.44:55503    # sz-3 公网
+        password: ${REDIS_PASSWORD}
