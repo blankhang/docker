@@ -1,0 +1,24 @@
+# Spring Boot 4 + Jedis — prod-sz（VPC 内 Sentinel）
+# GET-MASTER-ADDR-BY-NAME → 172.29.240.x:55502/55512/55513（REDIS_MONITOR_MODE=internal；55002 为旧 compose）
+
+spring:
+  data:
+    redis:
+      database: 0
+      password: ${REDIS_PASSWORD}
+      connect-timeout: 60s
+      timeout: 60s
+      client-type: Jedis
+      Jedis:
+        pool:
+          min-idle: 2
+          max-idle: 20
+          max-active: 50
+          max-wait: -1ms
+      sentinel:
+        master: myMaster
+        nodes:
+          - 172.29.240.103:55503
+          - 172.29.240.104:55503
+          - 172.29.240.105:55503
+        password: ${REDIS_PASSWORD}
