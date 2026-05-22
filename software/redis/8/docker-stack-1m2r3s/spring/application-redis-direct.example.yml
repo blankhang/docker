@@ -1,0 +1,18 @@
+# Spring Boot 4 + Jedis — dev-prod-sz / sb4（公网直连 master，无 Sentinel）
+
+spring:
+  data:
+    redis:
+      host: 120.24.64.42
+      port: 55502
+      database: 0
+      password: ${REDIS_PASSWORD}
+      connect-timeout: 60s
+      timeout: 60s
+      client-type: Jedis
+      Jedis:
+        pool:
+          min-idle: 2
+          max-idle: 20
+          max-active: 50
+          max-wait: -1ms
