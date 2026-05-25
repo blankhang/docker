@@ -2,7 +2,7 @@
 ARG NGINX_VERSION=1.28.1
 ARG IP2REGION_REPO=https://github.com/blankhang/ip2region.git
 ARG IP2REGION_REF=fac3d0376a7c75307104ac4fc65b945020f6cca2
-ARG GEOIP2_REPO=https://github.com/leev/ngx_http_geoip2_module.git
+ARG GEOIP2_REPO=https://github.com/blankhang/geoip2.git
 ARG GEOIP2_REF=cbaa35461c62a99d2577e6bae3273492502d8769
 
 # ---------- 第一阶段：构建动态模块 ----------

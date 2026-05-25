@@ -1,6 +1,6 @@
 # nginx-geoip2
 
-基于 `leev/ngx_http_geoip2_module` 构建 Nginx 动态模块 `ngx_http_geoip2_module.so`，用于从 MaxMind GeoIP2 数据库中读取国家、城市、经纬度等信息。[项目地址](https://github.com/leev/ngx_http_geoip2_module)
+基于你 fork 的 `blankhang/geoip2` 构建 Nginx 动态模块 `ngx_http_geoip2_module.so`，用于从 MaxMind GeoIP2 数据库中读取国家、城市、经纬度等信息；上游来源仍然是 `leev/ngx_http_geoip2_module`。[fork 地址](https://github.com/blankhang/geoip2)
 
 ## 本地构建
 
@@ -34,6 +34,7 @@ docker build \
 - 检测目标 nginx 版本是否存在
 - 构建并推送 `blankhang/nginx-geoip2:<version>`
 - 同步推送阿里云镜像仓库
+- 构建阶段固定从 `https://github.com/blankhang/geoip2.git` 拉取指定 `GEOIP2_REF`
 - 在 `blankhang/geoip2` 的 Release 中上传 `amd64` / `arm64` 两套 `.so` 与 `.sha256`
 - 如果镜像已存在但 Release 缺失，会直接从镜像提取模块补发 Release
 

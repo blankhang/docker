@@ -46,7 +46,7 @@ env:
   PLATFORMS: linux/amd64,linux/arm64
   IP2REGION_REPO: https://github.com/blankhang/ip2region.git
   IP2REGION_REF: fac3d0376a7c75307104ac4fc65b945020f6cca2
-  GEOIP2_REPO: https://github.com/leev/ngx_http_geoip2_module.git
+  GEOIP2_REPO: https://github.com/blankhang/geoip2.git
   GEOIP2_REF: cbaa35461c62a99d2577e6bae3273492502d8769
   RELEASE_REPOSITORY: blankhang/docker
 

@@ -1,6 +1,6 @@
 # ---------- ARG ----------
 ARG NGINX_VERSION=1.28.1
-ARG GEOIP2_REPO=https://github.com/leev/ngx_http_geoip2_module.git
+ARG GEOIP2_REPO=https://github.com/blankhang/geoip2.git
 ARG GEOIP2_REF=cbaa35461c62a99d2577e6bae3273492502d8769
 
 # ---------- 第一阶段：构建动态模块 ----------
