@@ -31,6 +31,8 @@ env:
   IMAGE_ROOT: software/nginx/ip2region
   IMAGE_NAME: blankhang/nginx-ip2region
   PLATFORMS: linux/amd64,linux/arm64
+  IP2REGION_REPO: https://github.com/blankhang/ip2region.git
+  IP2REGION_REF: fac3d0376a7c75307104ac4fc65b945020f6cca2
 
 jobs:
   detect-version:
@@ -56,6 +58,13 @@ jobs:
           import urllib.request
 
           stable_re = re.compile(r"^\d+\.\d+\.\d+$")
+
+          def parse_version(version):
+              return tuple(map(int, version.split(".")))
+
+          def is_stable_release(version):
+              _, minor, _ = parse_version(version)
+              return minor % 2 == 0
 
           def fetch_json(url):
               req = urllib.request.Request(
@@ -102,12 +111,12 @@ jobs:
                   payload = fetch_json(url)
                   for item in payload.get("results", []):
                       name = item.get("name", "")
-                      if stable_re.fullmatch(name):
+                      if stable_re.fullmatch(name) and is_stable_release(name):
                           versions.add(name)
                   url = payload.get("next")
               if not versions:
                   raise RuntimeError("未获取到 nginx 稳定版标签")
-              return max(versions, key=lambda version: tuple(map(int, version.split("."))))
+              return max(versions, key=parse_version)
 
           requested_version = os.environ.get("INPUT_NGINX_VERSION", "").strip()
           force_build = os.environ.get("FORCE_BUILD", "false").lower() == "true"
@@ -156,9 +165,16 @@ jobs:
       TZ: Asia/Shanghai
       TARGET_VERSION: ${{ needs.detect-version.outputs.target_version }}
       SET_LATEST: ${{ needs.detect-version.outputs.set_latest }}
+      IP2REGION_REPO: ${{ env.IP2REGION_REPO }}
+      IP2REGION_REF: ${{ env.IP2REGION_REF }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v6
+
+      - name: Show pinned ip2region source
+        run: |
+          echo "IP2REGION_REPO=${IP2REGION_REPO}"
+          echo "IP2REGION_REF=${IP2REGION_REF}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -183,6 +199,8 @@ jobs:
           file: ./${{ env.IMAGE_ROOT }}/Dockerfile
           build-args: |
             NGINX_VERSION=${{ env.TARGET_VERSION }}
+            IP2REGION_REPO=${{ env.IP2REGION_REPO }}
+            IP2REGION_REF=${{ env.IP2REGION_REF }}
           target: export
           platforms: linux/amd64
           outputs: type=local,dest=./dist
@@ -214,6 +232,8 @@ jobs:
           file: ./${{ env.IMAGE_ROOT }}/Dockerfile
           build-args: |
             NGINX_VERSION=${{ env.TARGET_VERSION }}
+            IP2REGION_REPO=${{ env.IP2REGION_REPO }}
+            IP2REGION_REF=${{ env.IP2REGION_REF }}
           target: final
           platforms: ${{ env.PLATFORMS }}
           cache-from: type=gha,scope=nginx-ip2region-final-${{ env.TARGET_VERSION }}

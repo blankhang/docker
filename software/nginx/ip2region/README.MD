@@ -35,6 +35,29 @@ docker build \
 
 ```
 
+## GitHub Actions 自动构建
+
+已新增工作流 `.github/workflows/docker-image-nginx-ip2region.yml`，支持两种触发方式：
+
+1. 定时轮询 nginx 官方稳定版，每 6 小时检测一次；发现新的稳定版本且镜像标签不存在时自动构建
+2. 在 GitHub Actions 页面手动触发 `Docker Image Nginx Ip2region CI`
+
+手动触发时可用输入参数：
+
+- `nginx_version`: 指定要构建的 nginx 版本，格式 `x.y.z`
+- `force_build`: 即使目标版本镜像已存在，也强制重新构建
+- `set_latest`: 仅当该版本正好是当前最新稳定版时，额外更新 `latest` 标签
+
+工作流会执行以下动作：
+
+- 先检测目标 nginx 版本是否存在，并校验 `nginx.org` 对应源码包可下载
+- 自动构建默认只跟踪 nginx 稳定版分支，不再把 `1.31.x` 这类 mainline 版本当成默认发布目标
+- `ip2region` 源码默认固定使用 `https://github.com/blankhang/ip2region.git` 的已验证 commit，避免上游 ref 变化导致失败
+- 构建 `export` 目标并上传 `ngx_http_ip2region_module.so` 作为 Actions Artifact
+- 构建并推送 `blankhang/nginx-ip2region:<version>`
+- 如果该版本是当前最新稳定版，则同步推送 `blankhang/nginx-ip2region:latest`
+- 同步推送到阿里云镜像仓库
+
 ## nginx conf
 
 > Syntax:  `ip2region_db xdb_file_path [cache_policy Optional]`;
