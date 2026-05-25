@@ -33,6 +33,7 @@ env:
   PLATFORMS: linux/amd64,linux/arm64
   IP2REGION_REPO: https://github.com/blankhang/ip2region.git
   IP2REGION_REF: fac3d0376a7c75307104ac4fc65b945020f6cca2
+  RELEASE_REPOSITORY: blankhang/ip2region
 
 jobs:
   detect-version:
@@ -162,7 +163,7 @@ jobs:
     needs: detect-version
     if: needs.detect-version.outputs.should_build == 'true'
     permissions:
-      contents: write
+      contents: read
     env:
       TZ: Asia/Shanghai
       TARGET_VERSION: ${{ needs.detect-version.outputs.target_version }}
@@ -299,14 +300,29 @@ jobs:
             echo "asset_sha256=${ASSET_SHA256}"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Validate cross-repo release token
+        env:
+          RELEASE_TOKEN: ${{ secrets.IP2REGION_RELEASE_TOKEN }}
+        run: |
+          if [ -z "${RELEASE_TOKEN}" ]; then
+            echo "Missing required secret: IP2REGION_RELEASE_TOKEN"
+            echo "This secret must have contents:write access to ${RELEASE_REPOSITORY}"
+            exit 1
+          fi
+
       - name: Publish module to GitHub Release
         uses: softprops/action-gh-release@v3
         with:
+          repository: ${{ env.RELEASE_REPOSITORY }}
+          target_commitish: ${{ env.IP2REGION_REF }}
+          token: ${{ secrets.IP2REGION_RELEASE_TOKEN }}
           tag_name: ${{ steps.release_meta.outputs.release_tag }}
           name: ${{ steps.release_meta.outputs.release_name }}
           body: |
             nginx_version: `${{ env.TARGET_VERSION }}`
             image: `${{ env.IMAGE_NAME }}:${{ env.TARGET_VERSION }}`
+            release_repository: `${{ env.RELEASE_REPOSITORY }}`
+            source_repository: `${{ github.repository }}`
             ip2region_repo: `${{ env.IP2REGION_REPO }}`
             ip2region_ref: `${{ env.IP2REGION_REF }}`
             workflow_run: `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`
