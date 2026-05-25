@@ -165,8 +165,6 @@ jobs:
       TZ: Asia/Shanghai
       TARGET_VERSION: ${{ needs.detect-version.outputs.target_version }}
       SET_LATEST: ${{ needs.detect-version.outputs.set_latest }}
-      IP2REGION_REPO: ${{ env.IP2REGION_REPO }}
-      IP2REGION_REF: ${{ env.IP2REGION_REF }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v6
