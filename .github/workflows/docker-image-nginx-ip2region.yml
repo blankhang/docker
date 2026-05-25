@@ -367,7 +367,7 @@ jobs:
     needs:
       - detect-version
       - build-image
-    if: needs.detect-version.outputs.should_release == 'true' && (needs.build-image.result == 'success' || needs.build-image.result == 'skipped')
+    if: always() && needs.detect-version.outputs.should_release == 'true' && (needs.build-image.result == 'success' || needs.build-image.result == 'skipped')
     permissions:
       contents: read
     env:
