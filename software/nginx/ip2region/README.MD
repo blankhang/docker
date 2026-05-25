@@ -54,6 +54,7 @@ docker build \
 - 自动构建默认只跟踪 nginx 稳定版分支，不再把 `1.31.x` 这类 mainline 版本当成默认发布目标
 - `ip2region` 源码默认固定使用 `https://github.com/blankhang/ip2region.git` 的已验证 commit，避免上游 ref 变化导致失败
 - 构建 `export` 目标并上传 `ngx_http_ip2region_module.so` 作为 Actions Artifact
+- 自动创建对应版本的 GitHub Release，并上传 `.so` 与 `.sha256` 资产
 - 构建并推送 `blankhang/nginx-ip2region:<version>`
 - 如果该版本是当前最新稳定版，则同步推送 `blankhang/nginx-ip2region:latest`
 - 同步推送到阿里云镜像仓库

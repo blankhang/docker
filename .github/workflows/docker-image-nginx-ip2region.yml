@@ -161,6 +161,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: detect-version
     if: needs.detect-version.outputs.should_build == 'true'
+    permissions:
+      contents: write
     env:
       TZ: Asia/Shanghai
       TARGET_VERSION: ${{ needs.detect-version.outputs.target_version }}
@@ -206,7 +208,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=nginx-ip2region-export-${{ env.TARGET_VERSION }}
 
       - name: Upload module artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: nginx-ip2region-module-${{ env.TARGET_VERSION }}
           path: ./dist/ngx_http_ip2region_module.so
@@ -275,6 +277,45 @@ jobs:
             docker tag "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip2region:latest"
             docker push "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip2region:latest"
           fi
+
+      - name: Prepare GitHub Release assets
+        id: release_meta
+        run: |
+          SHORT_REF="$(printf '%s' "${IP2REGION_REF}" | cut -c1-7)"
+          RELEASE_TAG="nginx-ip2region-nginx-${TARGET_VERSION}-${SHORT_REF}"
+          RELEASE_NAME="nginx ${TARGET_VERSION} ip2region module (${SHORT_REF})"
+          ASSET_BASENAME="nginx-ip2region-nginx-${TARGET_VERSION}-linux-amd64"
+          ASSET_FILE="./dist/${ASSET_BASENAME}.so"
+          ASSET_SHA256="./dist/${ASSET_BASENAME}.so.sha256"
+
+          cp ./dist/ngx_http_ip2region_module.so "${ASSET_FILE}"
+          HASH="$(sha256sum "${ASSET_FILE}" | awk '{print $1}')"
+          printf '%s  %s\n' "${HASH}" "${ASSET_BASENAME}.so" > "${ASSET_SHA256}"
+
+          {
+            echo "release_tag=${RELEASE_TAG}"
+            echo "release_name=${RELEASE_NAME}"
+            echo "asset_file=${ASSET_FILE}"
+            echo "asset_sha256=${ASSET_SHA256}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish module to GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.release_meta.outputs.release_tag }}
+          name: ${{ steps.release_meta.outputs.release_name }}
+          body: |
+            nginx_version: `${{ env.TARGET_VERSION }}`
+            image: `${{ env.IMAGE_NAME }}:${{ env.TARGET_VERSION }}`
+            ip2region_repo: `${{ env.IP2REGION_REPO }}`
+            ip2region_ref: `${{ env.IP2REGION_REF }}`
+            workflow_run: `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`
+          files: |
+            ${{ steps.release_meta.outputs.asset_file }}
+            ${{ steps.release_meta.outputs.asset_sha256 }}
+          fail_on_unmatched_files: true
+          overwrite_files: true
+          make_latest: ${{ env.SET_LATEST }}
 
   skip-build:
     runs-on: ubuntu-latest
