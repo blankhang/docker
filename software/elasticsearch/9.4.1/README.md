@@ -69,9 +69,11 @@ sudo chown -R 1000:1000 /docker/es/es-prod-stack/data-elasticsearch-node3 \
 | 变量 | 说明 |
 |------|------|
 | `ELK_VERSION` | 镜像 tag，默认 `9.4.1` |
+| `ELASTIC_CERT_CONFIG_VERSION` | TLS 证书 config 版本，改 `conf/elastic-certificates_p12` 后递增 |
+| Kibana 精简 | 在 `es-stack.yml` 的 `kibana.environment`，见 `conf/kibana-lean.yml` 注释 |
 | `ELASTIC_PASSWORD` | ES `elastic` 用户密码 |
 | `KIBANA_PASSWORD` | Kibana 连接 ES 的 `kibana_system` 密码 |
-| `XPACK_*_ENCRYPTIONKEY` | Kibana 三类加密密钥（变更会导致已加密对象不可用） |
+| `XPACK_*_ENCRYPTIONKEY` | Kibana 加密密钥（变更会导致已加密对象不可用） |
 
 ### 4. 部署
 
@@ -79,8 +81,11 @@ sudo chown -R 1000:1000 /docker/es/es-prod-stack/data-elasticsearch-node3 \
 
 ```bash
 cd docker-stack
-docker stack deploy --env-file .env -c es-stack.yml es-prod
+set -a && source .env && set +a
+docker stack deploy -c es-stack.yml es-prod
 ```
+
+> `docker stack deploy` **没有** `--env-file`（见 [官方 CLI](https://docs.docker.com/reference/cli/docker/stack/deploy/)）。`.env` 仅用于 compose 文件里的 `${VAR}` 插值，须先 `source` 或用 `docker compose config` 渲染。
 
 查看状态：
 
@@ -95,7 +100,7 @@ docker service logs es-prod_es-node1 -f
 
 ```bash
 # 编辑 es-stack.yml，注释三处 cluster.initial_master_nodes 后：
-docker stack deploy --env-file .env -c es-stack.yml es-prod
+set -a && source .env && set +a && docker stack deploy -c es-stack.yml es-prod
 ```
 
 ### 6. 更新 stack
