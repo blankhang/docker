@@ -59,6 +59,12 @@ docker build \
 - 如果该版本是当前最新稳定版，则同步推送 `blankhang/nginx-ip2region:latest`
 - 同步推送到阿里云镜像仓库
 
+工作流当前按三种状态运行：
+
+- 镜像不存在：构建镜像、推送镜像、发布 Release
+- 镜像已存在但 Release 不存在或资产不完整：跳过构建，直接从现有镜像提取 `.so` 补发 Release
+- 镜像和 Release 都已存在：直接跳过
+
 跨仓库发布 Release 需要在当前仓库配置 secret：
 
 - `IP2REGION_RELEASE_TOKEN`: 对目标仓库 `blankhang/ip2region` 具备 `contents: write` 权限的 fine-grained PAT 或 GitHub App token

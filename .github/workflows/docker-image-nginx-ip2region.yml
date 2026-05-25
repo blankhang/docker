@@ -40,8 +40,18 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       target_version: ${{ steps.detect.outputs.target_version }}
+      image_exists: ${{ steps.detect.outputs.image_exists }}
+      release_exists: ${{ steps.detect.outputs.release_exists }}
+      release_assets_complete: ${{ steps.detect.outputs.release_assets_complete }}
       should_build: ${{ steps.detect.outputs.should_build }}
+      should_release: ${{ steps.detect.outputs.should_release }}
+      release_source: ${{ steps.detect.outputs.release_source }}
+      publish_mode: ${{ steps.detect.outputs.publish_mode }}
       set_latest: ${{ steps.detect.outputs.set_latest }}
+      release_tag: ${{ steps.detect.outputs.release_tag }}
+      release_name: ${{ steps.detect.outputs.release_name }}
+      asset_basename: ${{ steps.detect.outputs.asset_basename }}
+      artifact_name: ${{ steps.detect.outputs.artifact_name }}
     steps:
       - name: Detect target version
         id: detect
@@ -50,6 +60,9 @@ jobs:
           FORCE_BUILD: ${{ github.event.inputs.force_build || 'false' }}
           MANUAL_SET_LATEST: ${{ github.event.inputs.set_latest || 'false' }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IP2REGION_REF: ${{ env.IP2REGION_REF }}
+          RELEASE_REPOSITORY: ${{ env.RELEASE_REPOSITORY }}
+          RELEASE_TOKEN: ${{ secrets.IP2REGION_RELEASE_TOKEN || '' }}
         run: |
           python3 <<'PY'
           import json
@@ -72,6 +85,17 @@ jobs:
                   url,
                   headers={"User-Agent": "github-actions-nginx-ip2region"},
               )
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  return json.load(resp)
+
+          def fetch_github_json(url, token=""):
+              headers = {
+                  "User-Agent": "github-actions-nginx-ip2region",
+                  "Accept": "application/vnd.github+json",
+              }
+              if token:
+                  headers["Authorization"] = f"Bearer {token}"
+              req = urllib.request.Request(url, headers=headers)
               with urllib.request.urlopen(req, timeout=30) as resp:
                   return json.load(resp)
 
@@ -105,6 +129,17 @@ jobs:
                       return False
                   raise
 
+          def release_state(repository, tag, asset_names, token=""):
+              url = f"https://api.github.com/repos/{repository}/releases/tags/{tag}"
+              try:
+                  payload = fetch_github_json(url, token=token)
+              except urllib.error.HTTPError as exc:
+                  if exc.code == 404:
+                      return False, False
+                  raise
+              assets = {asset.get("name", "") for asset in payload.get("assets", [])}
+              return True, all(name in assets for name in asset_names)
+
           def latest_stable_nginx():
               url = "https://hub.docker.com/v2/namespaces/library/repositories/nginx/tags?page_size=100"
               versions = set()
@@ -123,6 +158,9 @@ jobs:
           force_build = os.environ.get("FORCE_BUILD", "false").lower() == "true"
           manual_set_latest = os.environ.get("MANUAL_SET_LATEST", "false").lower() == "true"
           image_name = os.environ["IMAGE_NAME"]
+          ip2region_ref = os.environ["IP2REGION_REF"]
+          release_repository = os.environ["RELEASE_REPOSITORY"]
+          release_token = os.environ.get("RELEASE_TOKEN", "")
 
           latest_version = latest_stable_nginx()
           target_version = requested_version or latest_version
@@ -139,8 +177,35 @@ jobs:
           if not head_ok(source_url):
               raise RuntimeError(f"nginx 源码包不可用: {source_url}")
 
-          already_built = tag_exists(image_name, target_version)
-          should_build = force_build or (not already_built)
+          short_ref = ip2region_ref[:7]
+          release_tag = f"nginx-ip2region-nginx-{target_version}-{short_ref}"
+          release_name = f"nginx {target_version} ip2region module ({short_ref})"
+          asset_basename = f"nginx-ip2region-nginx-{target_version}-linux-amd64"
+          artifact_name = f"nginx-ip2region-module-{target_version}"
+          image_exists = tag_exists(image_name, target_version)
+          release_exists, release_assets_complete = release_state(
+              release_repository,
+              release_tag,
+              [f"{asset_basename}.so", f"{asset_basename}.so.sha256"],
+              token=release_token,
+          )
+
+          if force_build or not image_exists:
+              should_build = True
+              should_release = True
+              release_source = "build"
+              publish_mode = "build_and_release"
+          elif not release_assets_complete:
+              should_build = False
+              should_release = True
+              release_source = "image"
+              publish_mode = "release_only"
+          else:
+              should_build = False
+              should_release = False
+              release_source = "skip"
+              publish_mode = "skip"
+
           set_latest = (target_version == latest_version) and (
               requested_version == "" or manual_set_latest
           )
@@ -148,17 +213,35 @@ jobs:
           output_path = os.environ["GITHUB_OUTPUT"]
           with open(output_path, "a", encoding="utf-8") as fh:
               fh.write(f"target_version={target_version}\n")
+              fh.write(f"image_exists={'true' if image_exists else 'false'}\n")
+              fh.write(f"release_exists={'true' if release_exists else 'false'}\n")
+              fh.write(
+                  f"release_assets_complete={'true' if release_assets_complete else 'false'}\n"
+              )
               fh.write(f"should_build={'true' if should_build else 'false'}\n")
+              fh.write(f"should_release={'true' if should_release else 'false'}\n")
+              fh.write(f"release_source={release_source}\n")
+              fh.write(f"publish_mode={publish_mode}\n")
               fh.write(f"set_latest={'true' if set_latest else 'false'}\n")
+              fh.write(f"release_tag={release_tag}\n")
+              fh.write(f"release_name={release_name}\n")
+              fh.write(f"asset_basename={asset_basename}\n")
+              fh.write(f"artifact_name={artifact_name}\n")
           PY
 
       - name: Show decision
         run: |
           echo "target_version=${{ steps.detect.outputs.target_version }}"
+          echo "image_exists=${{ steps.detect.outputs.image_exists }}"
+          echo "release_exists=${{ steps.detect.outputs.release_exists }}"
+          echo "release_assets_complete=${{ steps.detect.outputs.release_assets_complete }}"
           echo "should_build=${{ steps.detect.outputs.should_build }}"
+          echo "should_release=${{ steps.detect.outputs.should_release }}"
+          echo "release_source=${{ steps.detect.outputs.release_source }}"
+          echo "publish_mode=${{ steps.detect.outputs.publish_mode }}"
           echo "set_latest=${{ steps.detect.outputs.set_latest }}"
 
-  build:
+  build-image:
     runs-on: ubuntu-latest
     needs: detect-version
     if: needs.detect-version.outputs.should_build == 'true'
@@ -279,13 +362,67 @@ jobs:
             docker push "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip2region:latest"
           fi
 
+  publish-release:
+    runs-on: ubuntu-latest
+    needs:
+      - detect-version
+      - build-image
+    if: needs.detect-version.outputs.should_release == 'true' && (needs.build-image.result == 'success' || needs.build-image.result == 'skipped')
+    permissions:
+      contents: read
+    env:
+      TZ: Asia/Shanghai
+      TARGET_VERSION: ${{ needs.detect-version.outputs.target_version }}
+      SET_LATEST: ${{ needs.detect-version.outputs.set_latest }}
+      RELEASE_TAG: ${{ needs.detect-version.outputs.release_tag }}
+      RELEASE_NAME: ${{ needs.detect-version.outputs.release_name }}
+      ASSET_BASENAME: ${{ needs.detect-version.outputs.asset_basename }}
+      ARTIFACT_NAME: ${{ needs.detect-version.outputs.artifact_name }}
+      RELEASE_SOURCE: ${{ needs.detect-version.outputs.release_source }}
+    steps:
+      - name: Validate cross-repo release token
+        env:
+          RELEASE_TOKEN: ${{ secrets.IP2REGION_RELEASE_TOKEN }}
+        run: |
+          if [ -z "${RELEASE_TOKEN}" ]; then
+            echo "Missing required secret: IP2REGION_RELEASE_TOKEN"
+            echo "This secret must have contents:write access to ${RELEASE_REPOSITORY}"
+            exit 1
+          fi
+
+      - name: Download module artifact from build
+        if: env.RELEASE_SOURCE == 'build'
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ./dist
+
+      - name: Login to Docker Hub for release repair
+        if: env.RELEASE_SOURCE == 'image'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract module from existing image
+        if: env.RELEASE_SOURCE == 'image'
+        run: |
+          mkdir -p ./dist
+          CID=""
+          cleanup() {
+            if [ -n "${CID}" ]; then
+              docker rm -f "${CID}" >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+
+          docker pull "${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
+          CID="$(docker create "${{ env.IMAGE_NAME }}:${TARGET_VERSION}")"
+          docker cp "${CID}:/etc/nginx/modules/ngx_http_ip2region_module.so" ./dist/ngx_http_ip2region_module.so
+
       - name: Prepare GitHub Release assets
         id: release_meta
         run: |
-          SHORT_REF="$(printf '%s' "${IP2REGION_REF}" | cut -c1-7)"
-          RELEASE_TAG="nginx-ip2region-nginx-${TARGET_VERSION}-${SHORT_REF}"
-          RELEASE_NAME="nginx ${TARGET_VERSION} ip2region module (${SHORT_REF})"
-          ASSET_BASENAME="nginx-ip2region-nginx-${TARGET_VERSION}-linux-amd64"
           ASSET_FILE="./dist/${ASSET_BASENAME}.so"
           ASSET_SHA256="./dist/${ASSET_BASENAME}.so.sha256"
 
@@ -299,16 +436,6 @@ jobs:
             echo "asset_file=${ASSET_FILE}"
             echo "asset_sha256=${ASSET_SHA256}"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Validate cross-repo release token
-        env:
-          RELEASE_TOKEN: ${{ secrets.IP2REGION_RELEASE_TOKEN }}
-        run: |
-          if [ -z "${RELEASE_TOKEN}" ]; then
-            echo "Missing required secret: IP2REGION_RELEASE_TOKEN"
-            echo "This secret must have contents:write access to ${RELEASE_REPOSITORY}"
-            exit 1
-          fi
 
       - name: Publish module to GitHub Release
         uses: softprops/action-gh-release@v3
@@ -325,6 +452,7 @@ jobs:
             source_repository: `${{ github.repository }}`
             ip2region_repo: `${{ env.IP2REGION_REPO }}`
             ip2region_ref: `${{ env.IP2REGION_REF }}`
+            release_source: `${{ env.RELEASE_SOURCE }}`
             workflow_run: `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`
           files: |
             ${{ steps.release_meta.outputs.asset_file }}
@@ -333,11 +461,11 @@ jobs:
           overwrite_files: true
           make_latest: ${{ env.SET_LATEST }}
 
-  skip-build:
+  skip-publish:
     runs-on: ubuntu-latest
     needs: detect-version
-    if: needs.detect-version.outputs.should_build != 'true'
+    if: needs.detect-version.outputs.publish_mode == 'skip'
     steps:
-      - name: No build needed
+      - name: No build or release needed
         run: |
-          echo "nginx:${{ needs.detect-version.outputs.target_version }} 已构建，跳过本次发布。"
+          echo "nginx:${{ needs.detect-version.outputs.target_version }} 的镜像和 Release 都已存在，跳过本次处理。"
