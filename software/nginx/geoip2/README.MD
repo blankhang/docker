@@ -1,101 +1,83 @@
 # nginx-geoip2
 
-## build
+基于 `leev/ngx_http_geoip2_module` 构建 Nginx 动态模块 `ngx_http_geoip2_module.so`，用于从 MaxMind GeoIP2 数据库中读取国家、城市、经纬度等信息。[项目地址](https://github.com/leev/ngx_http_geoip2_module)
 
-```shell
-$ cd /usr/local/src
-$ wget https://nginx.org/download/nginx-1.28.1.tar.gz
-$ tar -zxf nginx-1.28.1.tar.gz && rm -rf nginx-1.28.1.tar.gz
-$ git clone https://github.com/lionsoul2014/ip2region.git
-$ cd ip2region/binding/c
-$ make xdb_searcher_lib
-$ cd ../../../nginx-1.28.1
-$ ./configure \
-  --with-compat \
-  --add-dynamic-module=$(pwd)/../ip2region/binding/nginx \
-  --with-cc-opt="-I $(pwd)/../ip2region/binding/c/build/include" \
-  --with-ld-opt="-L$(pwd)/../ip2region/binding/c/build/lib"
-$ make
-$ make install
-```
-
-## 利用 docker 构建动态模块
+## 本地构建
 
 ```shell
 export DOCKER_BUILDKIT=1
 
-# 1. 构建最终 nginx 镜像
-#docker build --build-arg NGINX_VERSION=1.28.1 -t custom-nginx:1.28.1 .
+# 导出 .so
+docker build \
+  --build-arg NGINX_VERSION=1.28.1 \
+  --target export \
+  -o type=local,dest=./out .
 
-# 2. 只导出 so 文件到当前目录 tar 包
-docker build --build-arg NGINX_VERSION=1.28.1 --target build -o type=tar,dest=./ngx_http_geoip2_module.tar .
-
-tar xf ngx_http_geoip2_module.tar
-
+# 构建可运行镜像
+docker build \
+  --build-arg NGINX_VERSION=1.28.1 \
+  --target final \
+  -t blankhang/nginx-geoip2:1.28.1 .
 ```
 
-## nginx conf
+生成的模块文件位于 `./out/ngx_http_geoip2_module.so`。
 
-> Syntax:  `ip2region_db xdb_file_path [cache_policy Optional]`;
-> Context: http
+## GitHub Actions 自动构建
 
-cache_policy: `file` or `vectorIndex` or `content`, default: `content`
+已新增工作流 `/.github/workflows/docker-image-nginx-geoip2.yml`，支持：
 
-Edit `nginx.conf` add `ip2region_db` directive
+1. 定时轮询 nginx 官方稳定版
+2. 手动指定 nginx 版本触发构建
+
+工作流会执行以下动作：
+
+- 检测目标 nginx 版本是否存在
+- 构建并推送 `blankhang/nginx-geoip2:<version>`
+- 同步推送阿里云镜像仓库
+- 在 `blankhang/geoip2` 的 Release 中上传 `amd64` / `arm64` 两套 `.so` 与 `.sha256`
+- 如果镜像已存在但 Release 缺失，会直接从镜像提取模块补发 Release
+
+跨仓库发布 Release 需要在当前仓库配置 secret：
+
+- `GEOIP2_RELEASE_TOKEN`: 对目标仓库 `blankhang/geoip2` 具备 `contents: write` 权限的 token
+
+## nginx.conf 示例
+
+根据 `ngx_http_geoip2_module` 文档，先在 `nginx.conf` 第一行加载动态模块：[README](https://github.com/leev/ngx_http_geoip2_module)
 
 ```nginx
-
-... 
-
-# 如果是动态模块需要使用 load_module 的方式来加载它 需要放在 nginx.conf 第一行
-# load_module /etc/nginx/modules/ngx_http_ip2region_module.so;
+load_module /etc/nginx/modules/ngx_http_geoip2_module.so;
 
 http {
-
-    log_format main escape=json '{'
-                    '"time": "$time_local", '
-                    '"remote_addr": "$remote_addr", '
-                    '"region": "$ip2region", '
-                    '"method": "$request_method", '
-                    '"uri": "$request_uri", '
-                    '"status": "$status", '
-                    '"body_bytes_sent": "$body_bytes_sent", '
-                    '"referer": "$http_referer", '
-                    '"user_agent": "$http_user_agent", '
-                    '"http_x_forwarded_for": "$http_x_forwarded_for"'
-    '}';
-
-    access_log logs/access.log main;
-
-    # set xdb file path
-    ip2region_db ip2region.xdb;
-    # ip2region_db ip2region.xdb vectorIndex;
-    # ip2region_db ip2region.xdb file;
-    # ip2region_db ip2region.xdb content;
+    geoip2 /etc/nginx/geoip2/GeoLite2-City.mmdb {
+        auto_reload 5m;
+        $geoip2_data_country_code default=US source=$remote_addr country iso_code;
+        $geoip2_data_country_name country names en;
+        $geoip2_data_city_name city names en;
+    }
 
     server {
         listen 80;
         server_name localhost;
 
         location / {
-            root html;
-            index index.html index.htm;
+            add_header X-Country-Code $geoip2_data_country_code;
+            add_header X-Country-Name $geoip2_data_country_name;
+            add_header X-City-Name $geoip2_data_city_name;
+            return 200 "geoip2 enabled\n";
         }
     }
 }
-
 ```
-Copy `ngx_http_ip2region_module.so` to `/etc/nginx/modules` folder  
-Copy `ip2region.xdb` to `/etc/nginx` folder, then reload nginx
+
+如果你的请求经过反向代理或 Cloudflare，可以改用 `source=$http_cf_connecting_ip` 或其他真实来源 IP 变量。这一点在社区文章里也有示例说明。[参考文章](https://www.azio.me/how-to-install-ngx_http_geoip2_module/)
+
+## 部署说明
+
+1. 把 `ngx_http_geoip2_module.so` 放到 Nginx 模块目录，例如 `/etc/nginx/modules/`
+2. 把 GeoIP2 数据库文件放到 `/etc/nginx/geoip2/`
+3. 执行配置校验并重载：
 
 ```shell
-nginx -s reload
+nginx -t && nginx -s reload
 ```
-
-nginx access log sample
-
-```log
-{"time": "28/May/2025:14:32:55 +0800", "remote_addr": "183.11.242.141", "region": "中国|0|广东省|深圳市|电信", "method": "GET", "uri": "/", "status": "200", "body_bytes_sent": "798", "referer": "https://xxx.com/index", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36", "http_x_forwarded_for": ""}
-
-```
-thanks fa1seut0pia for https://github.com/lionsoul2014/ip2region/pull/359

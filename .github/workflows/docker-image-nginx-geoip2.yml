@@ -1,4 +1,4 @@
-name: Docker Image Nginx Ip2region CI
+name: Docker Image Nginx Geoip2 CI
 
 on:
   workflow_call:
@@ -31,22 +31,22 @@ on:
         default: false
         type: boolean
   schedule:
-    - cron: "17 */6 * * *"
+    - cron: "23 */6 * * *"
 
 permissions:
   contents: read
 
 concurrency:
-  group: docker-image-nginx-ip2region
+  group: docker-image-nginx-geoip2
   cancel-in-progress: false
 
 env:
-  IMAGE_ROOT: software/nginx/ip2region
-  IMAGE_NAME: blankhang/nginx-ip2region
+  IMAGE_ROOT: software/nginx/geoip2
+  IMAGE_NAME: blankhang/nginx-geoip2
   PLATFORMS: linux/amd64,linux/arm64
-  IP2REGION_REPO: https://github.com/blankhang/ip2region.git
-  IP2REGION_REF: fac3d0376a7c75307104ac4fc65b945020f6cca2
-  RELEASE_REPOSITORY: blankhang/ip2region
+  GEOIP2_REPO: https://github.com/leev/ngx_http_geoip2_module.git
+  GEOIP2_REF: cbaa35461c62a99d2577e6bae3273492502d8769
+  RELEASE_REPOSITORY: blankhang/geoip2
 
 jobs:
   detect-version:
@@ -73,9 +73,9 @@ jobs:
           FORCE_BUILD: ${{ inputs.force_build || github.event.inputs.force_build || 'false' }}
           MANUAL_SET_LATEST: ${{ inputs.set_latest || github.event.inputs.set_latest || 'false' }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          IP2REGION_REF: ${{ env.IP2REGION_REF }}
+          GEOIP2_REF: ${{ env.GEOIP2_REF }}
           RELEASE_REPOSITORY: ${{ env.RELEASE_REPOSITORY }}
-          RELEASE_TOKEN: ${{ secrets.IP2REGION_RELEASE_TOKEN || '' }}
+          RELEASE_TOKEN: ${{ secrets.GEOIP2_RELEASE_TOKEN || '' }}
         run: |
           python3 <<'PY'
           import json
@@ -93,30 +93,28 @@ jobs:
               _, minor, _ = parse_version(version)
               return minor % 2 == 0
 
-          def fetch_json(url):
+          def fetch_json(url, headers=None):
               req = urllib.request.Request(
                   url,
-                  headers={"User-Agent": "github-actions-nginx-ip2region"},
+                  headers=headers or {"User-Agent": "github-actions-nginx-geoip2"},
               )
               with urllib.request.urlopen(req, timeout=30) as resp:
                   return json.load(resp)
 
           def fetch_github_json(url, token=""):
               headers = {
-                  "User-Agent": "github-actions-nginx-ip2region",
+                  "User-Agent": "github-actions-nginx-geoip2",
                   "Accept": "application/vnd.github+json",
               }
               if token:
                   headers["Authorization"] = f"Bearer {token}"
-              req = urllib.request.Request(url, headers=headers)
-              with urllib.request.urlopen(req, timeout=30) as resp:
-                  return json.load(resp)
+              return fetch_json(url, headers=headers)
 
           def head_ok(url):
               req = urllib.request.Request(
                   url,
                   method="HEAD",
-                  headers={"User-Agent": "github-actions-nginx-ip2region"},
+                  headers={"User-Agent": "github-actions-nginx-geoip2"},
               )
               try:
                   with urllib.request.urlopen(req, timeout=30) as resp:
@@ -132,7 +130,7 @@ jobs:
               )
               req = urllib.request.Request(
                   url,
-                  headers={"User-Agent": "github-actions-nginx-ip2region"},
+                  headers={"User-Agent": "github-actions-nginx-geoip2"},
               )
               try:
                   with urllib.request.urlopen(req, timeout=30):
@@ -171,7 +169,7 @@ jobs:
           force_build = os.environ.get("FORCE_BUILD", "false").lower() == "true"
           manual_set_latest = os.environ.get("MANUAL_SET_LATEST", "false").lower() == "true"
           image_name = os.environ["IMAGE_NAME"]
-          ip2region_ref = os.environ["IP2REGION_REF"]
+          geoip2_ref = os.environ["GEOIP2_REF"]
           release_repository = os.environ["RELEASE_REPOSITORY"]
           release_token = os.environ.get("RELEASE_TOKEN", "")
 
@@ -190,11 +188,11 @@ jobs:
           if not head_ok(source_url):
               raise RuntimeError(f"nginx 源码包不可用: {source_url}")
 
-          short_ref = ip2region_ref[:7]
-          release_tag = f"nginx-ip2region-nginx-{target_version}-{short_ref}"
+          short_ref = geoip2_ref[:7]
+          release_tag = f"nginx-geoip2-nginx-{target_version}-{short_ref}"
           release_name = target_version
-          asset_basename = f"nginx-ip2region-nginx-{target_version}-linux"
-          artifact_name = f"nginx-ip2region-module-{target_version}"
+          asset_basename = f"nginx-geoip2-nginx-{target_version}-linux"
+          artifact_name = f"nginx-geoip2-module-{target_version}"
           image_exists = tag_exists(image_name, target_version)
           release_exists, release_assets_complete = release_state(
               release_repository,
@@ -211,7 +209,7 @@ jobs:
           if force_build or not image_exists:
               should_build = True
               should_release = True
-              release_source = "build"
+              release_source = "image"
               publish_mode = "build_and_release"
           elif not release_assets_complete:
               should_build = False
@@ -273,10 +271,10 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v6
 
-      - name: Show pinned ip2region source
+      - name: Show pinned geoip2 source
         run: |
-          echo "IP2REGION_REPO=${IP2REGION_REPO}"
-          echo "IP2REGION_REF=${IP2REGION_REF}"
+          echo "GEOIP2_REPO=${GEOIP2_REPO}"
+          echo "GEOIP2_REF=${GEOIP2_REF}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -301,19 +299,19 @@ jobs:
           file: ./${{ env.IMAGE_ROOT }}/Dockerfile
           build-args: |
             NGINX_VERSION=${{ env.TARGET_VERSION }}
-            IP2REGION_REPO=${{ env.IP2REGION_REPO }}
-            IP2REGION_REF=${{ env.IP2REGION_REF }}
+            GEOIP2_REPO=${{ env.GEOIP2_REPO }}
+            GEOIP2_REF=${{ env.GEOIP2_REF }}
           target: export
           platforms: linux/amd64
           outputs: type=local,dest=./dist
-          cache-from: type=gha,scope=nginx-ip2region-export-${{ env.TARGET_VERSION }}
-          cache-to: type=gha,mode=max,scope=nginx-ip2region-export-${{ env.TARGET_VERSION }}
+          cache-from: type=gha,scope=nginx-geoip2-export-${{ env.TARGET_VERSION }}
+          cache-to: type=gha,mode=max,scope=nginx-geoip2-export-${{ env.TARGET_VERSION }}
 
       - name: Upload module artifact
         uses: actions/upload-artifact@v6
         with:
-          name: nginx-ip2region-module-${{ env.TARGET_VERSION }}
-          path: ./dist/ngx_http_ip2region_module.so
+          name: nginx-geoip2-module-${{ env.TARGET_VERSION }}
+          path: ./dist/ngx_http_geoip2_module.so
           if-no-files-found: error
 
       - name: Set image tags
@@ -334,12 +332,12 @@ jobs:
           file: ./${{ env.IMAGE_ROOT }}/Dockerfile
           build-args: |
             NGINX_VERSION=${{ env.TARGET_VERSION }}
-            IP2REGION_REPO=${{ env.IP2REGION_REPO }}
-            IP2REGION_REF=${{ env.IP2REGION_REF }}
+            GEOIP2_REPO=${{ env.GEOIP2_REPO }}
+            GEOIP2_REF=${{ env.GEOIP2_REF }}
           target: final
           platforms: ${{ env.PLATFORMS }}
-          cache-from: type=gha,scope=nginx-ip2region-final-${{ env.TARGET_VERSION }}
-          cache-to: type=gha,mode=max,scope=nginx-ip2region-final-${{ env.TARGET_VERSION }}
+          cache-from: type=gha,scope=nginx-geoip2-final-${{ env.TARGET_VERSION }}
+          cache-to: type=gha,mode=max,scope=nginx-geoip2-final-${{ env.TARGET_VERSION }}
           push: true
           tags: ${{ steps.image_tags.outputs.tags }}
 
@@ -348,7 +346,7 @@ jobs:
           docker pull "${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
           docker run --rm --entrypoint /bin/sh "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" -ec '
             cat >/tmp/nginx.conf <<EOF
-          load_module /etc/nginx/modules/ngx_http_ip2region_module.so;
+          load_module /etc/nginx/modules/ngx_http_geoip2_module.so;
           events {}
           http {
               server {
@@ -372,12 +370,12 @@ jobs:
       - name: ReTag and push to AliDockerHub
         run: |
           docker pull "${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
-          docker tag "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip2region:${TARGET_VERSION}"
-          docker push "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip2region:${TARGET_VERSION}"
+          docker tag "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-geoip2:${TARGET_VERSION}"
+          docker push "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-geoip2:${TARGET_VERSION}"
 
           if [ "${SET_LATEST}" = "true" ]; then
-            docker tag "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip2region:latest"
-            docker push "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip2region:latest"
+            docker tag "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-geoip2:latest"
+            docker push "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-geoip2:latest"
           fi
 
   publish-release:
@@ -387,7 +385,7 @@ jobs:
       - build-image
     if: always() && needs.detect-version.outputs.should_release == 'true' && (needs.build-image.result == 'success' || needs.build-image.result == 'skipped')
     permissions:
-      contents: read
+      contents: write
     env:
       TZ: Asia/Shanghai
       TARGET_VERSION: ${{ needs.detect-version.outputs.target_version }}
@@ -395,15 +393,14 @@ jobs:
       RELEASE_TAG: ${{ needs.detect-version.outputs.release_tag }}
       RELEASE_NAME: ${{ needs.detect-version.outputs.release_name }}
       ASSET_BASENAME: ${{ needs.detect-version.outputs.asset_basename }}
-      ARTIFACT_NAME: ${{ needs.detect-version.outputs.artifact_name }}
       RELEASE_SOURCE: ${{ needs.detect-version.outputs.release_source }}
     steps:
-      - name: Validate cross-repo release token
+      - name: Validate geoip2 release token
         env:
-          RELEASE_TOKEN: ${{ secrets.IP2REGION_RELEASE_TOKEN }}
+          RELEASE_TOKEN: ${{ secrets.GEOIP2_RELEASE_TOKEN }}
         run: |
           if [ -z "${RELEASE_TOKEN}" ]; then
-            echo "Missing required secret: IP2REGION_RELEASE_TOKEN"
+            echo "Missing required secret: GEOIP2_RELEASE_TOKEN"
             echo "This secret must have contents:write access to ${RELEASE_REPOSITORY}"
             exit 1
           fi
@@ -427,7 +424,7 @@ jobs:
             cid=""
             docker pull --platform "linux/${arch}" "${IMAGE_REF}"
             cid="$(docker create --platform "linux/${arch}" "${IMAGE_REF}")"
-            docker cp "${cid}:/etc/nginx/modules/ngx_http_ip2region_module.so" "./dist/${ASSET_BASENAME}-${arch}.so"
+            docker cp "${cid}:/etc/nginx/modules/ngx_http_geoip2_module.so" "./dist/${ASSET_BASENAME}-${arch}.so"
             docker rm -f "${cid}" >/dev/null 2>&1 || true
           }
 
@@ -460,8 +457,8 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           repository: ${{ env.RELEASE_REPOSITORY }}
-          target_commitish: ${{ env.IP2REGION_REF }}
-          token: ${{ secrets.IP2REGION_RELEASE_TOKEN }}
+          token: ${{ secrets.GEOIP2_RELEASE_TOKEN }}
+          target_commitish: ${{ github.sha }}
           tag_name: ${{ steps.release_meta.outputs.release_tag }}
           name: ${{ steps.release_meta.outputs.release_name }}
           body: |
@@ -469,8 +466,8 @@ jobs:
             image: `${{ env.IMAGE_NAME }}:${{ env.TARGET_VERSION }}`
             release_repository: `${{ env.RELEASE_REPOSITORY }}`
             source_repository: `${{ github.repository }}`
-            ip2region_repo: `${{ env.IP2REGION_REPO }}`
-            ip2region_ref: `${{ env.IP2REGION_REF }}`
+            geoip2_repo: `${{ env.GEOIP2_REPO }}`
+            geoip2_ref: `${{ env.GEOIP2_REF }}`
             release_source: `${{ env.RELEASE_SOURCE }}`
             workflow_run: `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`
           files: |
@@ -489,4 +486,4 @@ jobs:
     steps:
       - name: No build or release needed
         run: |
-          echo "nginx:${{ needs.detect-version.outputs.target_version }} 的镜像和 Release 都已存在，跳过本次处理。"
+          echo "nginx:${{ needs.detect-version.outputs.target_version }} 的 geoip2 镜像和 Release 都已存在，跳过本次处理。"
