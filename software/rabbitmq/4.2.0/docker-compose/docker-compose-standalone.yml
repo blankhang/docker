@@ -1,0 +1,23 @@
+
+services:
+  rabbitmq:
+    image: blankhang/rabbitmq:4.2.0-management
+    hostname: rabbitmq
+    container_name: rabbitmq
+    restart: always
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
+    environment:
+      #- default user/pwd is guest/quest
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+      - RABBITMQ_ERLANG_COOKIE="MY-SECRET-KEY-123"
+    volumes:
+        - /docker/rabbitmq/data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
