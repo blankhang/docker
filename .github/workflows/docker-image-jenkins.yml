@@ -1,0 +1,100 @@
+name: Docker Image Jenkins CI
+
+on:
+  workflow_dispatch: #github页面手动触发
+  push:
+    tags:
+      - "v*.*" # 当发布 tag 时触发自动构建
+
+env:
+  IMAGE_ROOT: software
+  IMAGE: jenkins
+  IMAGE_NAME: blankhang/jenkins
+  IMAGE_VERSION: lts-jdk25  # JDK 25 版本标识
+  IMAGE_JDK_25_NAME: blankhang/jenkins:lts-jdk25
+  IMAGE_JDK_LATEST: blankhang/jenkins:latest
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Shanghai
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Docker Login
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Get version tag
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION_TAG="${GITHUB_REF#refs/tags/v}"
+            echo "tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
+            echo "Using git tag version: ${VERSION_TAG}"
+          else
+            echo "tag=" >> $GITHUB_OUTPUT
+            echo "No git tag, using default tags"
+          fi
+
+      - name: Build jdk25 image (non-android) and push
+        id: build_jdk25
+        uses: docker/build-push-action@v7
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/build
+          file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/build/jdk25.Dockerfile
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          push: true
+          tags: |
+            ${{ env.IMAGE_JDK_25_NAME }}
+            ${{ env.IMAGE_JDK_LATEST }}
+
+      - name: Image digest
+        run: echo ${{ steps.build_jdk25.outputs.digest }}
+
+      - name: Login to AliDockerHub
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}
+          username: ${{ secrets.ALI_DOCKER_HUB_USN }}
+          password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
+
+      - name: Tag and push versioned image (if git tag exists)
+        if: steps.version.outputs.tag != ''
+        run: |
+          docker pull ${{ env.IMAGE_JDK_25_NAME }}
+          docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ env.IMAGE_NAME }}:lts-jdk25-${{ steps.version.outputs.tag }}
+          docker push ${{ env.IMAGE_NAME }}:lts-jdk25-${{ steps.version.outputs.tag }}
+
+      - name: ReTag and push to AliDockerHub
+        run: |
+          docker pull ${{ env.IMAGE_JDK_25_NAME }}
+
+          docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25
+          docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:latest
+
+          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25
+          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:latest
+
+          # 如果有 git tag，推送带版本号的标签
+          if [ -n "${{ steps.version.outputs.tag }}" ]; then
+            docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25-${{ steps.version.outputs.tag }}
+            docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25-${{ steps.version.outputs.tag }}
+          fi

@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  mailserver:
+    image: docker.io/mailserver/docker-mailserver:latest
+    container_name: mailserver
+    hostname: mail.aaa.com
+    #env_file: mailserver.env
+    ports:
+      - "25:25" # SMTP (explicit TLS => STARTTLS)
+      - "143:143" # IMAP4 (explicit TLS => STARTTLS)
+      - "465:465" # ESMTP (implicit TLS)
+      - "587:587" # ESMTP (explicit TLS => STARTTLS)
+      - "993:993" # IMAP4 (implicit TLS)
+    volumes:
+      - ./data/maildata:/var/mail
+      - ./data/mailstate:/var/mail-state
+      - ./data/maillogs:/var/log/mail
+      - ./config/:/tmp/docker-mailserver
+      - /etc/localtime:/etc/localtime:ro
+      - /docker/nginx/ssl:/tmp/ssl:ro
+    restart: always
+    stop_grace_period: 30s
+    cap_add:
+      - NET_ADMIN
+      - SYS_PTRACE
+    environment:
+      # Using letsencrypt for SSL/TLS certificates:
+      # - SSL_TYPE=letsencrypt
+      - SSL_TYPE=manual
+      - SSL_CERT_PATH=/tmp/ssl/*.aaa.com.fullchain.cer
+      - SSL_KEY_PATH=/tmp/ssl/*.aaa.com.key
+      - POSTFIX_MESSAGE_SIZE_LIMIT=20971520 # 20M
+      - UPDATE_CHECK_INTERVAL=7d
+      - REPORT_RECIPIENT=blankhang@gmail.com  # 报告接收人
+      - LOGWATCH_INTERVAL=daily # 每隔一天发送日志报告 周使用 weekly
+
+    healthcheck:
+      test: "ss --listening --tcp | grep -P 'LISTEN.+:smtp' || exit 1"
+      timeout: 3s
+      retries: 0
+
+
+# 添加用户
+#docker exec -it mailserver setup email update admin@aaa.com 123456
+# 修改用户
+#docker exec -it mailserver setup email update blank@aaa.com 222333
+#查看用户列表
+#docker exec -it mailserver setup email list
+
+# 创建用户别名
+#docker exec -it mailserver setup alias add dmarc.report@aaa.com admin@aaa.com
+# 删除别名
+#docker exec -it mailserver setup alias remove dmarc.report@aaa.com admin@aaa.com
+
+# 设置邮件配额
+#docker exec -it mailserver setup quota set <user>@<domain>.<tld> 2G
+#Ban掉指定ip地址
+#docker exec -it mailserver setup fail2ban ban 45.128.234.165
+
+# help
+#docker exec -it mailserver setup help
+#v=DMARC1; p=none; rua=mailto:dmarc.report@aaa.com; ruf=mailto:dmarc.report@aaa.com; sp=none; ri=86400

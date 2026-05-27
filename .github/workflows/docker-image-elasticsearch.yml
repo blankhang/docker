@@ -1,0 +1,91 @@
+name: Docker Image ES  CI
+on:
+  workflow_dispatch: #github页面手动触发
+  push:
+    tags:
+      - "v*.*" # github 发布tag时触发自动构建
+# on:
+#   push:
+#     branches: [ "master" ]
+#   pull_request:
+#     branches: [ "master" ]
+
+env:
+  IMAGE_ROOT: software
+  IMAGE: elasticsearch # 镜像
+  IMAGE_NAME: blankhang/elasticsearch #这是您的镜像名
+  LATEST_VERSION: "9.4.1" # latest 标签对应版本
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        IMAGE_VERSION: [9.3.3, 9.4.1]
+    env:
+      TZ: Asia/Shanghai
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Docker Login
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set image tags
+        id: image_tags
+        run: |
+          TAGS="${{ env.IMAGE_NAME }}:${{ matrix.IMAGE_VERSION }}"
+          if [ "${{ matrix.IMAGE_VERSION }}" = "${{ env.LATEST_VERSION }}" ]; then
+            TAGS="${TAGS},${{ env.IMAGE_NAME }}:latest"
+          fi
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v7
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/${{ matrix.IMAGE_VERSION }}/build/
+          file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/${{ matrix.IMAGE_VERSION }}/build/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          #,linux/ppc64le,linux/s390x
+          cache-from: type=gha,scope=${{ matrix.IMAGE_VERSION }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.IMAGE_VERSION }}
+          push: true
+          tags: ${{ steps.image_tags.outputs.tags }}
+
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
+
+      - name: Login to AliDockerHub
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}
+          username: ${{ secrets.ALI_DOCKER_HUB_USN }}
+          password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
+
+      - name: ReTag and push to AliDockerHub
+        run: |
+          docker pull ${{ env.IMAGE_NAME }}:${{ matrix.IMAGE_VERSION }}
+
+          docker tag ${{ env.IMAGE_NAME }}:${{ matrix.IMAGE_VERSION }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ matrix.IMAGE_VERSION }}
+          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ matrix.IMAGE_VERSION }}
+
+          if [ "${{ matrix.IMAGE_VERSION }}" = "${{ env.LATEST_VERSION }}" ]; then
+            docker tag ${{ env.IMAGE_NAME }}:${{ matrix.IMAGE_VERSION }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
+            docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
+          fi

@@ -1,0 +1,469 @@
+name: Docker Image Nginx Ip Bundle CI
+
+on:
+  workflow_call:
+    inputs:
+      nginx_version:
+        required: false
+        type: string
+      force_build:
+        required: false
+        default: false
+        type: boolean
+      set_latest:
+        required: false
+        default: false
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      nginx_version:
+        description: "指定 nginx 版本，留空则自动检测最新稳定版"
+        required: false
+        type: string
+      force_build:
+        description: "即使镜像标签已存在也强制重新构建"
+        required: false
+        default: false
+        type: boolean
+      set_latest:
+        description: "手动构建时，如果版本正好是当前最新稳定版则同步更新 latest"
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: "29 */6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-image-nginx-ip-bundle
+  cancel-in-progress: false
+
+env:
+  IMAGE_ROOT: software/nginx/ip-bundle
+  IMAGE_NAME: blankhang/nginx-ip-bundle
+  PLATFORMS: linux/amd64,linux/arm64
+  IP2REGION_REPO: https://github.com/blankhang/ip2region.git
+  IP2REGION_REF: fac3d0376a7c75307104ac4fc65b945020f6cca2
+  GEOIP2_REPO: https://github.com/blankhang/geoip2.git
+  GEOIP2_REF: cbaa35461c62a99d2577e6bae3273492502d8769
+  RELEASE_REPOSITORY: blankhang/docker
+
+jobs:
+  detect-version:
+    runs-on: ubuntu-latest
+    outputs:
+      target_version: ${{ steps.detect.outputs.target_version }}
+      image_exists: ${{ steps.detect.outputs.image_exists }}
+      release_exists: ${{ steps.detect.outputs.release_exists }}
+      release_assets_complete: ${{ steps.detect.outputs.release_assets_complete }}
+      should_build: ${{ steps.detect.outputs.should_build }}
+      should_release: ${{ steps.detect.outputs.should_release }}
+      release_source: ${{ steps.detect.outputs.release_source }}
+      publish_mode: ${{ steps.detect.outputs.publish_mode }}
+      set_latest: ${{ steps.detect.outputs.set_latest }}
+      release_tag: ${{ steps.detect.outputs.release_tag }}
+      release_name: ${{ steps.detect.outputs.release_name }}
+      asset_basename: ${{ steps.detect.outputs.asset_basename }}
+    steps:
+      - name: Detect target version
+        id: detect
+        env:
+          INPUT_NGINX_VERSION: ${{ inputs.nginx_version || github.event.inputs.nginx_version || '' }}
+          FORCE_BUILD: ${{ inputs.force_build || github.event.inputs.force_build || 'false' }}
+          MANUAL_SET_LATEST: ${{ inputs.set_latest || github.event.inputs.set_latest || 'false' }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IP2REGION_REF: ${{ env.IP2REGION_REF }}
+          GEOIP2_REF: ${{ env.GEOIP2_REF }}
+          RELEASE_REPOSITORY: ${{ env.RELEASE_REPOSITORY }}
+          RELEASE_TOKEN: ${{ github.token }}
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          import re
+          import urllib.error
+          import urllib.request
+
+          stable_re = re.compile(r"^\d+\.\d+\.\d+$")
+
+          def parse_version(version):
+              return tuple(map(int, version.split(".")))
+
+          def is_stable_release(version):
+              _, minor, _ = parse_version(version)
+              return minor % 2 == 0
+
+          def fetch_json(url, headers=None):
+              req = urllib.request.Request(
+                  url,
+                  headers=headers or {"User-Agent": "github-actions-nginx-ip-bundle"},
+              )
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  return json.load(resp)
+
+          def fetch_github_json(url, token=""):
+              headers = {
+                  "User-Agent": "github-actions-nginx-ip-bundle",
+                  "Accept": "application/vnd.github+json",
+              }
+              if token:
+                  headers["Authorization"] = f"Bearer {token}"
+              return fetch_json(url, headers=headers)
+
+          def head_ok(url):
+              req = urllib.request.Request(
+                  url,
+                  method="HEAD",
+                  headers={"User-Agent": "github-actions-nginx-ip-bundle"},
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as resp:
+                      return 200 <= resp.status < 400
+              except Exception:
+                  return False
+
+          def tag_exists(image_name, tag):
+              namespace, repo = image_name.split("/", 1)
+              url = (
+                  f"https://hub.docker.com/v2/namespaces/{namespace}/"
+                  f"repositories/{repo}/tags/{tag}"
+              )
+              req = urllib.request.Request(
+                  url,
+                  headers={"User-Agent": "github-actions-nginx-ip-bundle"},
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=30):
+                      return True
+              except urllib.error.HTTPError as exc:
+                  if exc.code == 404:
+                      return False
+                  raise
+
+          def release_state(repository, tag, asset_names, token=""):
+              url = f"https://api.github.com/repos/{repository}/releases/tags/{tag}"
+              try:
+                  payload = fetch_github_json(url, token=token)
+              except urllib.error.HTTPError as exc:
+                  if exc.code == 404:
+                      return False, False
+                  raise
+              assets = {asset.get("name", "") for asset in payload.get("assets", [])}
+              return True, all(name in assets for name in asset_names)
+
+          def latest_stable_nginx():
+              url = "https://hub.docker.com/v2/namespaces/library/repositories/nginx/tags?page_size=100"
+              versions = set()
+              while url:
+                  payload = fetch_json(url)
+                  for item in payload.get("results", []):
+                      name = item.get("name", "")
+                      if stable_re.fullmatch(name) and is_stable_release(name):
+                          versions.add(name)
+                  url = payload.get("next")
+              if not versions:
+                  raise RuntimeError("未获取到 nginx 稳定版标签")
+              return max(versions, key=parse_version)
+
+          requested_version = os.environ.get("INPUT_NGINX_VERSION", "").strip()
+          force_build = os.environ.get("FORCE_BUILD", "false").lower() == "true"
+          manual_set_latest = os.environ.get("MANUAL_SET_LATEST", "false").lower() == "true"
+          image_name = os.environ["IMAGE_NAME"]
+          ip2region_ref = os.environ["IP2REGION_REF"]
+          geoip2_ref = os.environ["GEOIP2_REF"]
+          release_repository = os.environ["RELEASE_REPOSITORY"]
+          release_token = os.environ.get("RELEASE_TOKEN", "")
+
+          latest_version = latest_stable_nginx()
+          target_version = requested_version or latest_version
+
+          if not stable_re.fullmatch(target_version):
+              raise RuntimeError(
+                  f"只支持稳定版 x.y.z，当前输入为: {target_version or '<empty>'}"
+              )
+
+          if not tag_exists("library/nginx", target_version):
+              raise RuntimeError(f"Docker Hub 上不存在 nginx:{target_version}")
+
+          source_url = f"https://nginx.org/download/nginx-{target_version}.tar.gz"
+          if not head_ok(source_url):
+              raise RuntimeError(f"nginx 源码包不可用: {source_url}")
+
+          ip2_short = ip2region_ref[:7]
+          geo_short = geoip2_ref[:7]
+          release_tag = f"nginx-ip-bundle-nginx-{target_version}-{ip2_short}-{geo_short}"
+          release_name = target_version
+          asset_basename = f"nginx-ip-bundle-nginx-{target_version}-linux"
+          image_exists = tag_exists(image_name, target_version)
+          release_exists, release_assets_complete = release_state(
+              release_repository,
+              release_tag,
+              [
+                  f"{asset_basename}-amd64.tar.gz",
+                  f"{asset_basename}-amd64.tar.gz.sha256",
+                  f"{asset_basename}-arm64.tar.gz",
+                  f"{asset_basename}-arm64.tar.gz.sha256",
+              ],
+              token=release_token,
+          )
+
+          if force_build or not image_exists:
+              should_build = True
+              should_release = True
+              release_source = "image"
+              publish_mode = "build_and_release"
+          elif not release_assets_complete:
+              should_build = False
+              should_release = True
+              release_source = "image"
+              publish_mode = "release_only"
+          else:
+              should_build = False
+              should_release = False
+              release_source = "skip"
+              publish_mode = "skip"
+
+          set_latest = (target_version == latest_version) and (
+              requested_version == "" or manual_set_latest
+          )
+
+          output_path = os.environ["GITHUB_OUTPUT"]
+          with open(output_path, "a", encoding="utf-8") as fh:
+              fh.write(f"target_version={target_version}\n")
+              fh.write(f"image_exists={'true' if image_exists else 'false'}\n")
+              fh.write(f"release_exists={'true' if release_exists else 'false'}\n")
+              fh.write(
+                  f"release_assets_complete={'true' if release_assets_complete else 'false'}\n"
+              )
+              fh.write(f"should_build={'true' if should_build else 'false'}\n")
+              fh.write(f"should_release={'true' if should_release else 'false'}\n")
+              fh.write(f"release_source={release_source}\n")
+              fh.write(f"publish_mode={publish_mode}\n")
+              fh.write(f"set_latest={'true' if set_latest else 'false'}\n")
+              fh.write(f"release_tag={release_tag}\n")
+              fh.write(f"release_name={release_name}\n")
+              fh.write(f"asset_basename={asset_basename}\n")
+          PY
+
+      - name: Show decision
+        run: |
+          echo "target_version=${{ steps.detect.outputs.target_version }}"
+          echo "image_exists=${{ steps.detect.outputs.image_exists }}"
+          echo "release_exists=${{ steps.detect.outputs.release_exists }}"
+          echo "release_assets_complete=${{ steps.detect.outputs.release_assets_complete }}"
+          echo "should_build=${{ steps.detect.outputs.should_build }}"
+          echo "should_release=${{ steps.detect.outputs.should_release }}"
+          echo "release_source=${{ steps.detect.outputs.release_source }}"
+          echo "publish_mode=${{ steps.detect.outputs.publish_mode }}"
+          echo "set_latest=${{ steps.detect.outputs.set_latest }}"
+
+  build-image:
+    runs-on: ubuntu-latest
+    needs: detect-version
+    if: needs.detect-version.outputs.should_build == 'true'
+    permissions:
+      contents: read
+    env:
+      TZ: Asia/Shanghai
+      TARGET_VERSION: ${{ needs.detect-version.outputs.target_version }}
+      SET_LATEST: ${{ needs.detect-version.outputs.set_latest }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v6
+
+      - name: Show pinned sources
+        run: |
+          echo "IP2REGION_REPO=${IP2REGION_REPO}"
+          echo "IP2REGION_REF=${IP2REGION_REF}"
+          echo "GEOIP2_REPO=${GEOIP2_REPO}"
+          echo "GEOIP2_REF=${GEOIP2_REF}"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Docker Login
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set image tags
+        id: image_tags
+        run: |
+          TAGS="${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
+          if [ "${SET_LATEST}" = "true" ]; then
+            TAGS="${TAGS},${{ env.IMAGE_NAME }}:latest"
+          fi
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        id: docker_build
+        uses: docker/build-push-action@v7
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: ./${{ env.IMAGE_ROOT }}
+          file: ./${{ env.IMAGE_ROOT }}/Dockerfile
+          build-args: |
+            NGINX_VERSION=${{ env.TARGET_VERSION }}
+            IP2REGION_REPO=${{ env.IP2REGION_REPO }}
+            IP2REGION_REF=${{ env.IP2REGION_REF }}
+            GEOIP2_REPO=${{ env.GEOIP2_REPO }}
+            GEOIP2_REF=${{ env.GEOIP2_REF }}
+          target: final
+          platforms: ${{ env.PLATFORMS }}
+          cache-from: type=gha,scope=nginx-ip-bundle-final-${{ env.TARGET_VERSION }}
+          cache-to: type=gha,mode=max,scope=nginx-ip-bundle-final-${{ env.TARGET_VERSION }}
+          push: true
+          tags: ${{ steps.image_tags.outputs.tags }}
+
+      - name: Smoke test module load
+        run: |
+          docker pull "${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
+          docker run --rm --entrypoint /bin/sh "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" -ec '
+            cat >/tmp/nginx.conf <<EOF
+          load_module /etc/nginx/modules/ngx_http_ip2region_module.so;
+          load_module /etc/nginx/modules/ngx_http_geoip2_module.so;
+          events {}
+          http {
+              server {
+                  listen 8080;
+              }
+          }
+          EOF
+            nginx -t -c /tmp/nginx.conf
+          '
+
+      - name: Image digest
+        run: echo "${{ steps.docker_build.outputs.digest }}"
+
+      - name: Login to AliDockerHub
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}
+          username: ${{ secrets.ALI_DOCKER_HUB_USN }}
+          password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
+
+      - name: ReTag and push to AliDockerHub
+        run: |
+          docker pull "${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
+          docker tag "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip-bundle:${TARGET_VERSION}"
+          docker push "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip-bundle:${TARGET_VERSION}"
+
+          if [ "${SET_LATEST}" = "true" ]; then
+            docker tag "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip-bundle:latest"
+            docker push "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip-bundle:latest"
+          fi
+
+  publish-release:
+    runs-on: ubuntu-latest
+    needs:
+      - detect-version
+      - build-image
+    if: always() && needs.detect-version.outputs.should_release == 'true' && (needs.build-image.result == 'success' || needs.build-image.result == 'skipped')
+    permissions:
+      contents: write
+    env:
+      TZ: Asia/Shanghai
+      TARGET_VERSION: ${{ needs.detect-version.outputs.target_version }}
+      SET_LATEST: ${{ needs.detect-version.outputs.set_latest }}
+      RELEASE_TAG: ${{ needs.detect-version.outputs.release_tag }}
+      RELEASE_NAME: ${{ needs.detect-version.outputs.release_name }}
+      ASSET_BASENAME: ${{ needs.detect-version.outputs.asset_basename }}
+      RELEASE_SOURCE: ${{ needs.detect-version.outputs.release_source }}
+    steps:
+      - name: Set up QEMU for multi-arch extraction
+        uses: docker/setup-qemu-action@v4
+
+      - name: Login to Docker Hub for release publishing
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract bundle modules from multi-arch image
+        run: |
+          mkdir -p ./dist/amd64 ./dist/arm64
+          IMAGE_REF="${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
+
+          extract_bundle() {
+            arch="$1"
+            arch_dir="./dist/${arch}"
+            cid=""
+            docker pull --platform "linux/${arch}" "${IMAGE_REF}"
+            cid="$(docker create --platform "linux/${arch}" "${IMAGE_REF}")"
+            docker cp "${cid}:/etc/nginx/modules/ngx_http_ip2region_module.so" "${arch_dir}/ngx_http_ip2region_module.so"
+            docker cp "${cid}:/etc/nginx/modules/ngx_http_geoip2_module.so" "${arch_dir}/ngx_http_geoip2_module.so"
+            docker rm -f "${cid}" >/dev/null 2>&1 || true
+            tar -C "${arch_dir}" -czf "./dist/${ASSET_BASENAME}-${arch}.tar.gz" \
+              ngx_http_ip2region_module.so \
+              ngx_http_geoip2_module.so
+          }
+
+          extract_bundle amd64
+          extract_bundle arm64
+
+      - name: Prepare GitHub Release assets
+        id: release_meta
+        run: |
+          ASSET_AMD64_FILE="./dist/${ASSET_BASENAME}-amd64.tar.gz"
+          ASSET_AMD64_SHA256="./dist/${ASSET_BASENAME}-amd64.tar.gz.sha256"
+          ASSET_ARM64_FILE="./dist/${ASSET_BASENAME}-arm64.tar.gz"
+          ASSET_ARM64_SHA256="./dist/${ASSET_BASENAME}-arm64.tar.gz.sha256"
+
+          HASH_AMD64="$(sha256sum "${ASSET_AMD64_FILE}" | awk '{print $1}')"
+          HASH_ARM64="$(sha256sum "${ASSET_ARM64_FILE}" | awk '{print $1}')"
+          printf '%s  %s\n' "${HASH_AMD64}" "${ASSET_BASENAME}-amd64.tar.gz" > "${ASSET_AMD64_SHA256}"
+          printf '%s  %s\n' "${HASH_ARM64}" "${ASSET_BASENAME}-arm64.tar.gz" > "${ASSET_ARM64_SHA256}"
+
+          {
+            echo "release_tag=${RELEASE_TAG}"
+            echo "release_name=${RELEASE_NAME}"
+            echo "asset_amd64_file=${ASSET_AMD64_FILE}"
+            echo "asset_amd64_sha256=${ASSET_AMD64_SHA256}"
+            echo "asset_arm64_file=${ASSET_ARM64_FILE}"
+            echo "asset_arm64_sha256=${ASSET_ARM64_SHA256}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish bundle release
+        uses: softprops/action-gh-release@v3
+        with:
+          repository: ${{ env.RELEASE_REPOSITORY }}
+          target_commitish: ${{ github.sha }}
+          tag_name: ${{ steps.release_meta.outputs.release_tag }}
+          name: ${{ steps.release_meta.outputs.release_name }}
+          body: |
+            nginx_version: `${{ env.TARGET_VERSION }}`
+            image: `${{ env.IMAGE_NAME }}:${{ env.TARGET_VERSION }}`
+            release_repository: `${{ env.RELEASE_REPOSITORY }}`
+            source_repository: `${{ github.repository }}`
+            ip2region_repo: `${{ env.IP2REGION_REPO }}`
+            ip2region_ref: `${{ env.IP2REGION_REF }}`
+            geoip2_repo: `${{ env.GEOIP2_REPO }}`
+            geoip2_ref: `${{ env.GEOIP2_REF }}`
+            release_source: `${{ env.RELEASE_SOURCE }}`
+            workflow_run: `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`
+          files: |
+            ${{ steps.release_meta.outputs.asset_amd64_file }}
+            ${{ steps.release_meta.outputs.asset_amd64_sha256 }}
+            ${{ steps.release_meta.outputs.asset_arm64_file }}
+            ${{ steps.release_meta.outputs.asset_arm64_sha256 }}
+          fail_on_unmatched_files: true
+          overwrite_files: true
+          make_latest: ${{ env.SET_LATEST }}
+
+  skip-publish:
+    runs-on: ubuntu-latest
+    needs: detect-version
+    if: needs.detect-version.outputs.publish_mode == 'skip'
+    steps:
+      - name: No build or release needed
+        run: |
+          echo "nginx:${{ needs.detect-version.outputs.target_version }} 的双插件镜像和 Release 都已存在，跳过本次处理。"

@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  frp:
+    image: zhangsean/frp
+    container_name: frps
+    restart: always
+    network_mode: host
+    environment:
+      - SERVER=1
+    volumes:
+      - ./frps.ini:/opt/frp/frps.ini
