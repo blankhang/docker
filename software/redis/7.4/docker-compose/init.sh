@@ -1409,7 +1409,7 @@ services:
 #    environment:
 #     - REDIS_HOST=redis
 #     - REDIS_PORT=59394
-#     - REDIS_PASSWORD=123456
+#     - REDIS_PASSWORD=changeme
 #    ports:
 #    - "59395:8081"
 

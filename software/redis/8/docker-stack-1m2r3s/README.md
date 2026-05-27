@@ -59,7 +59,7 @@ mkdir -p /docker/redis/redis-stack-1m2r3s/data/{master,replica-1,replica-2}
 ### 2.3 Secret（仅首次）
 
 ```bash
-printf '%s' '你的强密码' | docker secret create redis_1m2r3s_password -
+printf '%s' "${REDIS_PASSWORD:-changeme}" | docker secret create redis_1m2r3s_password -
 ```
 
 ### 2.4 防火墙
@@ -88,7 +88,8 @@ docker service ls
 验收：
 
 ```bash
-export REDIS_PASSWORD='你的强密码'
+# 见 ../.env.example；生产勿使用默认 changeme
+export REDIS_PASSWORD='changeme'
 ./scripts/check-replication.sh
 ```
 
@@ -162,7 +163,7 @@ docker stack rm redis-1m2s          # 旧 stack
 # 或重新 prepare.sh
 
 docker secret rm redis_1m2s_password   # 无引用后
-printf '%s' '你的强密码' | docker secret create redis_1m2r3s_password -
+printf '%s' "${REDIS_PASSWORD:-changeme}" | docker secret create redis_1m2r3s_password -
 
 cd /docker/redis/redis-stack-1m2r3s
 docker stack deploy -c redis-stack.yml redis-1m2r3s
@@ -196,7 +197,7 @@ docker service update --force redis-1m2r3s_redis-sentinel-3
 **临时修复**（三台 Sentinel 各执行，按当前主节点改 `ANN_IP`/`ANN_PORT`）：
 
 ```bash
-PW='你的强密码'
+PW='changeme'
 ANN_IP=172.29.240.103
 ANN_PORT=55502
 for S in 172.29.240.103 172.29.240.104 172.29.240.105; do

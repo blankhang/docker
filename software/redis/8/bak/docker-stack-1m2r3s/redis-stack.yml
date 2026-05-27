@@ -8,7 +8,7 @@
 #
 # 前置：
 # 1) 各节点创建 /docker/redis/redis-stack-1m2r3s/data/*（见 scripts/prepare.sh）
-# 2) printf '%s' '强密码' | docker secret create redis_1m2r3s_password -
+# 2) printf '%s' "${REDIS_PASSWORD:-changeme}" | docker secret create redis_1m2r3s_password -
 # 3) docker stack deploy -c redis-stack.yml redis-1m2r3s
 #
 # 更新配置时递增 REDIS_CONFIG_VERSION / SENTINEL_CONFIG_VERSION

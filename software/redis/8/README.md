@@ -1,4 +1,6 @@
-# docker redis
+# docker redis 8
+
+默认示例密码见 [.env.example](.env.example)（`REDIS_PASSWORD=changeme`，生产务必修改）。
 
 ## Swarm 1 主 2 从
 

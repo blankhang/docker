@@ -1,6 +1,6 @@
 # docker redis 8.8.0
 
-固定基础镜像 `redis:8.8.0-alpine`；自定义镜像见 [build/](build/)。
+固定基础镜像 `redis:8.8.0-alpine`；自定义镜像见 [build/](build/)。默认示例密码见 [.env.example](.env.example)（`changeme`，生产务必修改）。
 
 ## Swarm 1 主 2 从
 
