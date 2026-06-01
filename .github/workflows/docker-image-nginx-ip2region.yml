@@ -263,6 +263,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: detect-version
     if: needs.detect-version.outputs.should_build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            arch: amd64
+          - platform: linux/arm64
+            arch: arm64
     permissions:
       contents: read
     env:
@@ -294,6 +302,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build module artifact
+        if: matrix.arch == 'amd64'
         uses: docker/build-push-action@v7
         with:
           builder: ${{ steps.buildx.outputs.name }}
@@ -310,22 +319,14 @@ jobs:
           cache-to: type=gha,mode=max,scope=nginx-ip2region-export-${{ env.TARGET_VERSION }}
 
       - name: Upload module artifact
+        if: matrix.arch == 'amd64'
         uses: actions/upload-artifact@v6
         with:
           name: nginx-ip2region-module-${{ env.TARGET_VERSION }}
           path: ./dist/ngx_http_ip2region_module.so
           if-no-files-found: error
 
-      - name: Set image tags
-        id: image_tags
-        run: |
-          TAGS="${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
-          if [ "${SET_LATEST}" = "true" ]; then
-            TAGS="${TAGS},${{ env.IMAGE_NAME }}:latest"
-          fi
-          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
-
-      - name: Build and push image
+      - name: Build image by platform and push by digest
         id: docker_build
         uses: docker/build-push-action@v7
         with:
@@ -337,11 +338,84 @@ jobs:
             IP2REGION_REPO=${{ env.IP2REGION_REPO }}
             IP2REGION_REF=${{ env.IP2REGION_REF }}
           target: final
-          platforms: ${{ env.PLATFORMS }}
-          cache-from: type=gha,scope=nginx-ip2region-final-${{ env.TARGET_VERSION }}
-          cache-to: type=gha,mode=max,scope=nginx-ip2region-final-${{ env.TARGET_VERSION }}
-          push: true
-          tags: ${{ steps.image_tags.outputs.tags }}
+          platforms: ${{ matrix.platform }}
+          cache-from: type=gha,scope=nginx-ip2region-final-${{ env.TARGET_VERSION }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=nginx-ip2region-final-${{ env.TARGET_VERSION }}-${{ matrix.arch }}
+          outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          tags: ${{ env.IMAGE_NAME }}:${{ env.TARGET_VERSION }}
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.docker_build.outputs.digest }}"
+          digest="${digest#sha256:}"
+          touch "/tmp/digests/${digest}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge-image:
+    runs-on: ubuntu-latest
+    needs:
+      - detect-version
+      - build-image
+    if: needs.detect-version.outputs.should_build == 'true' && needs.build-image.result == 'success'
+    permissions:
+      contents: read
+    env:
+      TZ: Asia/Shanghai
+      TARGET_VERSION: ${{ needs.detect-version.outputs.target_version }}
+      SET_LATEST: ${{ needs.detect-version.outputs.set_latest }}
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Docker Login
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Login to AliDockerHub
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}
+          username: ${{ secrets.ALI_DOCKER_HUB_USN }}
+          password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
+
+      - name: Merge and push DockerHub multi-arch manifest
+        run: |
+          TAG_ARGS="-t ${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
+          if [ "${SET_LATEST}" = "true" ]; then
+            TAG_ARGS="${TAG_ARGS} -t ${{ env.IMAGE_NAME }}:latest"
+          fi
+
+          docker buildx imagetools create \
+            ${TAG_ARGS} \
+            $(printf '${{ env.IMAGE_NAME }}@sha256:%s ' /tmp/digests/*)
+
+      - name: Merge and push AliDockerHub multi-arch manifest
+        run: |
+          TAG_ARGS="-t ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip2region:${TARGET_VERSION}"
+          if [ "${SET_LATEST}" = "true" ]; then
+            TAG_ARGS="${TAG_ARGS} -t ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip2region:latest"
+          fi
+
+          docker buildx imagetools create \
+            ${TAG_ARGS} \
+            $(printf '${{ env.IMAGE_NAME }}@sha256:%s ' /tmp/digests/*)
 
       - name: Smoke test module load
         run: |
@@ -359,33 +433,13 @@ jobs:
             nginx -t -c /tmp/nginx.conf
           '
 
-      - name: Image digest
-        run: echo "${{ steps.docker_build.outputs.digest }}"
-
-      - name: Login to AliDockerHub
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}
-          username: ${{ secrets.ALI_DOCKER_HUB_USN }}
-          password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
-
-      - name: ReTag and push to AliDockerHub
-        run: |
-          docker pull "${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
-          docker tag "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip2region:${TARGET_VERSION}"
-          docker push "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip2region:${TARGET_VERSION}"
-
-          if [ "${SET_LATEST}" = "true" ]; then
-            docker tag "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip2region:latest"
-            docker push "${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/nginx-ip2region:latest"
-          fi
-
   publish-release:
     runs-on: ubuntu-latest
     needs:
       - detect-version
       - build-image
-    if: always() && needs.detect-version.outputs.should_release == 'true' && (needs.build-image.result == 'success' || needs.build-image.result == 'skipped')
+      - merge-image
+    if: always() && needs.detect-version.outputs.should_release == 'true' && (needs.build-image.result == 'success' || needs.build-image.result == 'skipped') && (needs.merge-image.result == 'success' || needs.merge-image.result == 'skipped')
     permissions:
       contents: read
     env:
