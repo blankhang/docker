@@ -219,6 +219,21 @@ done
 
 ### prod-sz：`Failed to connect` Sentinel `55503`
 
+**常见根因**：Sentinel 日志出现 `Running mode=sentinel, port=55003`，但 Spring / 发布端口为 **55503**——Swarm 仍挂载旧版 `redis_sentinel_conf_v1`（`port 55003`），与 `published: 55503` 不一致，宿主机连 `55503` 会 **Connection refused**。
+
+处理：
+
+```bash
+cd /docker/redis/redis-stack-1m2r3s
+export SENTINEL_CONFIG_VERSION=v2   # 每次改 conf/sentinel.conf 须递增
+docker stack deploy -c redis-stack.yml redis-1m2r3s
+docker service update --force redis-1m2r3s_redis-sentinel-1
+docker service update --force redis-1m2r3s_redis-sentinel-2
+docker service update --force redis-1m2r3s_redis-sentinel-3
+# 日志应变为 port=55503
+redis-cli -h 172.29.240.103 -p 55503 -a '你的密码' --no-auth-warning ping
+```
+
 1. sz-1 上确认服务与端口：
    ```bash
    docker service ps redis-1m2r3s_redis-sentinel-1
