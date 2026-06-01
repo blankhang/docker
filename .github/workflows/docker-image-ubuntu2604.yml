@@ -59,7 +59,6 @@ jobs:
         cache-from: type=gha,scope=${{ github.workflow }}-${{ matrix.arch }}
         cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ matrix.arch }}
         outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
-        tags: ${{ env.IMAGE_NAME }}:latest
 
     - name: Export digest
       run: |

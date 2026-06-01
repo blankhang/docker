@@ -342,7 +342,6 @@ jobs:
           cache-from: type=gha,scope=nginx-ip2region-final-${{ env.TARGET_VERSION }}-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=nginx-ip2region-final-${{ env.TARGET_VERSION }}-${{ matrix.arch }}
           outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
-          tags: ${{ env.IMAGE_NAME }}:${{ env.TARGET_VERSION }}
 
       - name: Export digest
         run: |
