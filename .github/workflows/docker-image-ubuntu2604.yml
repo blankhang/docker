@@ -21,7 +21,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [linux/amd64, linux/arm64]
+        include:
+          - platform: linux/amd64
+            arch: amd64
+          - platform: linux/arm64
+            arch: arm64
     env:
       TZ: Asia/Shanghai
     steps:
@@ -52,8 +56,8 @@ jobs:
         context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}
         file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/Dockerfile
         platforms: ${{ matrix.platform }}
-        cache-from: type=gha,scope=${{ github.workflow }}-${{ matrix.platform }}
-        cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ matrix.platform }}
+        cache-from: type=gha,scope=${{ github.workflow }}-${{ matrix.arch }}
+        cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ matrix.arch }}
         outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
         tags: ${{ env.IMAGE_NAME }}:latest
 
@@ -67,7 +71,7 @@ jobs:
     - name: Upload digest
       uses: actions/upload-artifact@v4
       with:
-        name: digests-${{ replace(matrix.platform, '/', '-') }}
+        name: digests-${{ matrix.arch }}
         path: /tmp/digests/*
         if-no-files-found: error
         retention-days: 1
