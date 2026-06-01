@@ -1,4 +1,4 @@
-name: Docker Image ES  CI
+name: Docker Image ElasticSearch  CI
 on:
   workflow_dispatch: #github页面手动触发
   push:
