@@ -14,7 +14,7 @@ env:
   IMAGE_ROOT: software
   IMAGE: elasticsearch # 镜像
   IMAGE_NAME: blankhang/elasticsearch #这是您的镜像名
-  LATEST_VERSION: "9.4.1" # latest 标签对应版本
+  LATEST_VERSION: "9.4.2" # latest 标签对应版本
 
 jobs:
 
@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        IMAGE_VERSION: [9.3.3, 9.4.1]
+        IMAGE_VERSION: [9.3.3, 9.4.1, 9.4.2]
     env:
       TZ: Asia/Shanghai
     steps:
