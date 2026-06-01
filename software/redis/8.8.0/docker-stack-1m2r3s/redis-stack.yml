@@ -14,7 +14,7 @@
 # 2) printf '%s' "${REDIS_PASSWORD:-changeme}" | docker secret create redis_1m2r3s_password -
 # 3) docker stack deploy -c redis-stack.yml redis-1m2r3s
 #
-# 更新配置时递增 REDIS_CONFIG_VERSION / SENTINEL_CONFIG_VERSION
+# 更新配置时递增 REDIS_CONFIG_VERSION / SENTINEL_CONFIG_VERSION（改 sentinel.conf 的 port 后必须 bump，否则 Swarm 仍用旧 config 如 55003）
 #
 # Sentinel 与 Redis 8 官方文档对齐要点（Docker/NAT）：
 # - Redis: replica-announce-ip / replica-announce-port（从库 INFO 与对外地址）
@@ -153,7 +153,9 @@ x-sentinel-base: &sentinel-base
       fi
       printf 'sentinel auth-pass %s %s\n' "$$MASTER_NAME" "$$PW" >> "$$CONF"
       printf 'sentinel monitor %s %s %s %s\n' "$$MASTER_NAME" "$$MONITOR_IP" "$$MONITOR_PORT" "$$QUORUM" >> "$$CONF"
-      exec redis-server "$$CONF" --sentinel
+      SENTINEL_LISTEN_PORT="$${SENTINEL_LISTEN_PORT:-55503}"
+      sed -i "s/^port .*/port $${SENTINEL_LISTEN_PORT}/" "$$CONF"
+      exec redis-server "$$CONF" --sentinel --port "$$SENTINEL_LISTEN_PORT"
   environment:
     SENTINEL_MASTER_NAME: myMaster
     SENTINEL_QUORUM: "2"
@@ -161,6 +163,7 @@ x-sentinel-base: &sentinel-base
     MASTER_INTERNAL_IP: 172.29.240.103
     MASTER_INTERNAL_PORT: "55502"
     REDIS_MASTER_PORT: "55502"
+    SENTINEL_LISTEN_PORT: "55503"
   deploy:
     replicas: 1
     placement:
@@ -310,6 +313,7 @@ services:
       REDIS_MONITOR_MODE: internal
       MASTER_INTERNAL_IP: 172.29.240.103
       MASTER_INTERNAL_PORT: "55502"
+      SENTINEL_LISTEN_PORT: "55503"
     ports:
       - target: 55503
         published: 55503
