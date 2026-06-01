@@ -16,9 +16,12 @@ env:
   IMAGE_NAME_OPENJDK25: blankhang/ubuntu2604:openjdk25 #这是您的镜像名
 
 jobs:
-
   build:
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux/amd64, linux/arm64]
     env:
       TZ: Asia/Shanghai
     steps:
@@ -41,22 +44,55 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build openjdk25 and push
+    - name: Build openjdk25 by platform and push by digest
       id: openjdk25_build
       uses: docker/build-push-action@v7
       with:
         builder: ${{ steps.buildx.outputs.name }}
         context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}
         file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/openjdk25/Dockerfile
-        platforms: linux/amd64,linux/arm64
-        #,linux/ppc64le,linux/s390x
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        push: true
+        platforms: ${{ matrix.platform }}
+        cache-from: type=gha,scope=${{ github.workflow }}-${{ matrix.platform }}
+        cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ matrix.platform }}
+        outputs: type=image,name=${{ env.IMAGE_NAME_OPENJDK25 }},push-by-digest=true,name-canonical=true,push=true
         tags: ${{ env.IMAGE_NAME_OPENJDK25 }}
 
-    - name: Image digest
-      run: echo ${{ steps.openjdk25_build.outputs.digest }}
+    - name: Export digest
+      run: |
+        mkdir -p /tmp/digests
+        digest="${{ steps.openjdk25_build.outputs.digest }}"
+        digest="${digest#sha256:}"
+        touch "/tmp/digests/${digest}"
+
+    - name: Upload digest
+      uses: actions/upload-artifact@v4
+      with:
+        name: digests-${{ replace(matrix.platform, '/', '-') }}
+        path: /tmp/digests/*
+        if-no-files-found: error
+        retention-days: 1
+
+  merge:
+    runs-on: ubuntu-22.04
+    needs: build
+    env:
+      TZ: Asia/Shanghai
+    steps:
+    - name: Download digests
+      uses: actions/download-artifact@v4
+      with:
+        path: /tmp/digests
+        pattern: digests-*
+        merge-multiple: true
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v4
+
+    - name: Docker Login
+      uses: docker/login-action@v4
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Login to AliDockerHub
       uses: docker/login-action@v4
@@ -65,9 +101,14 @@ jobs:
         username: ${{ secrets.ALI_DOCKER_HUB_USN }}
         password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
 
-    - name: ReTag and push to AliDockerHub
+    - name: Merge and push DockerHub multi-arch manifest
       run: |
-        docker pull ${{ env.IMAGE_NAME_OPENJDK25 }}
+        docker buildx imagetools create \
+          -t ${{ env.IMAGE_NAME_OPENJDK25 }} \
+          $(printf '${{ env.IMAGE_NAME_OPENJDK25 }}@sha256:%s ' /tmp/digests/*)
 
-        docker tag ${{ env.IMAGE_NAME_OPENJDK25 }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:openjdk25
-        docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:openjdk25
+    - name: Merge and push AliDockerHub multi-arch manifest
+      run: |
+        docker buildx imagetools create \
+          -t ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:openjdk25 \
+          $(printf '${{ env.IMAGE_NAME_OPENJDK25 }}@sha256:%s ' /tmp/digests/*)
