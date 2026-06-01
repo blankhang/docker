@@ -10,7 +10,7 @@ env:
   IMAGE_ROOT: software
   IMAGE: rabbitmq
   IMAGE_NAME: blankhang/rabbitmq # 镜像名
-  IMAGE_VERSION: 4.3.0 # 版本号
+  IMAGE_VERSION: 4.3.1 # 版本号
 
 jobs:
 
