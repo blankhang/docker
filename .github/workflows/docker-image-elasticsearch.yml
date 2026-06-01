@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        IMAGE_VERSION: [9.3.3, 9.4.1, 9.4.2]
+        IMAGE_VERSION: [9.4.1, 9.4.2]
     env:
       TZ: Asia/Shanghai
     steps:
