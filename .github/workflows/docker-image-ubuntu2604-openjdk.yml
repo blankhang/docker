@@ -13,7 +13,8 @@ on:
 env:
   IMAGE_ROOT: operation-system
   IMAGE: ubuntu2604
-  IMAGE_NAME_OPENJDK25: blankhang/ubuntu2604:openjdk25 #这是您的镜像名
+  IMAGE_REPO: blankhang/ubuntu2604
+  IMAGE_TAG_OPENJDK25: openjdk25
 
 jobs:
   build:
@@ -58,7 +59,7 @@ jobs:
         platforms: ${{ matrix.platform }}
         cache-from: type=gha,scope=${{ github.workflow }}-${{ matrix.arch }}
         cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ matrix.arch }}
-        outputs: type=image,name=${{ env.IMAGE_NAME_OPENJDK25 }},push-by-digest=true,name-canonical=true,push=true
+        outputs: type=image,name=${{ env.IMAGE_REPO }},push-by-digest=true,name-canonical=true,push=true
 
     - name: Export digest
       run: |
@@ -68,7 +69,7 @@ jobs:
         touch "/tmp/digests/${digest}"
 
     - name: Upload digest
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: digests-${{ matrix.arch }}
         path: /tmp/digests/*
@@ -82,7 +83,7 @@ jobs:
       TZ: Asia/Shanghai
     steps:
     - name: Download digests
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v6
       with:
         path: /tmp/digests
         pattern: digests-*
@@ -105,13 +106,27 @@ jobs:
         password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
 
     - name: Merge and push DockerHub multi-arch manifest
+      env:
+        IMAGE: ${{ env.IMAGE_REPO }}
+        TAG: ${{ env.IMAGE_TAG_OPENJDK25 }}
       run: |
-        docker buildx imagetools create \
-          -t ${{ env.IMAGE_NAME_OPENJDK25 }} \
-          $(printf '${{ env.IMAGE_NAME_OPENJDK25 }}@sha256:%s ' /tmp/digests/*)
+        set -euo pipefail
+        mapfile -t files < <(find /tmp/digests -type f)
+        if [ "${#files[@]}" -lt 2 ]; then
+          echo "::error::Expected at least 2 platform digests, got ${#files[@]}"
+          find /tmp/digests -ls || true
+          exit 1
+        fi
+        refs=()
+        for f in "${files[@]}"; do
+          refs+=("${IMAGE}@sha256:$(basename "$f")")
+        done
+        docker buildx imagetools create -t "${IMAGE}:${TAG}" "${refs[@]}"
 
     - name: Merge and push AliDockerHub multi-arch manifest
       run: |
-        docker buildx imagetools create \
-          -t ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:openjdk25 \
-          $(printf '${{ env.IMAGE_NAME_OPENJDK25 }}@sha256:%s ' /tmp/digests/*)
+        set -euo pipefail
+        docker pull ${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_OPENJDK25 }}
+        docker tag ${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_OPENJDK25 }} \
+          ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_TAG_OPENJDK25 }}
+        docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_TAG_OPENJDK25 }}

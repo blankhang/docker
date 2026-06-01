@@ -68,7 +68,7 @@ jobs:
         touch "/tmp/digests/${digest}"
 
     - name: Upload digest
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: digests-${{ matrix.arch }}
         path: /tmp/digests/*
@@ -82,7 +82,7 @@ jobs:
       TZ: Asia/Shanghai
     steps:
     - name: Download digests
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v6
       with:
         path: /tmp/digests
         pattern: digests-*
@@ -105,13 +105,26 @@ jobs:
         password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
 
     - name: Merge and push DockerHub multi-arch manifest
+      env:
+        IMAGE: ${{ env.IMAGE_NAME }}
       run: |
-        docker buildx imagetools create \
-          -t ${{ env.IMAGE_NAME }}:latest \
-          $(printf '${{ env.IMAGE_NAME }}@sha256:%s ' /tmp/digests/*)
+        set -euo pipefail
+        mapfile -t files < <(find /tmp/digests -type f)
+        if [ "${#files[@]}" -lt 2 ]; then
+          echo "::error::Expected at least 2 platform digests, got ${#files[@]}"
+          find /tmp/digests -ls || true
+          exit 1
+        fi
+        refs=()
+        for f in "${files[@]}"; do
+          refs+=("${IMAGE}@sha256:$(basename "$f")")
+        done
+        docker buildx imagetools create -t "${IMAGE}:latest" "${refs[@]}"
 
     - name: Merge and push AliDockerHub multi-arch manifest
       run: |
-        docker buildx imagetools create \
-          -t ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest \
-          $(printf '${{ env.IMAGE_NAME }}@sha256:%s ' /tmp/digests/*)
+        set -euo pipefail
+        docker pull ${{ env.IMAGE_NAME }}:latest
+        docker tag ${{ env.IMAGE_NAME }}:latest \
+          ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
+        docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
