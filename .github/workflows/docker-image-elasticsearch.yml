@@ -14,7 +14,7 @@ env:
   IMAGE_ROOT: software
   IMAGE: elasticsearch # 镜像
   IMAGE_NAME: blankhang/elasticsearch #这是您的镜像名
-  LATEST_VERSION: "9.4.2" # latest 标签对应版本
+  IMAGE_VERSION: "9.4.2" # 当前发布版本
 
 jobs:
 
@@ -23,7 +23,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        IMAGE_VERSION: [9.4.2] # 可同时部署多个版本 如[9.4.1, 9.4.2]
+        include:
+          - platform: linux/amd64
+            arch: amd64
+          - platform: linux/arm64
+            arch: arm64
     env:
       TZ: Asia/Shanghai
     steps:
@@ -45,31 +49,54 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Set image tags
-        id: image_tags
-        run: |
-          TAGS="${{ env.IMAGE_NAME }}:${{ matrix.IMAGE_VERSION }}"
-          if [ "${{ matrix.IMAGE_VERSION }}" = "${{ env.LATEST_VERSION }}" ]; then
-            TAGS="${TAGS},${{ env.IMAGE_NAME }}:latest"
-          fi
-          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
-
-      - name: Build and push
+      - name: Build by platform and push by digest
         id: docker_build
         uses: docker/build-push-action@v7
         with:
           builder: ${{ steps.buildx.outputs.name }}
-          context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/${{ matrix.IMAGE_VERSION }}/build/
-          file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/${{ matrix.IMAGE_VERSION }}/build/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          #,linux/ppc64le,linux/s390x
-          cache-from: type=gha,scope=${{ matrix.IMAGE_VERSION }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.IMAGE_VERSION }}
-          push: true
-          tags: ${{ steps.image_tags.outputs.tags }}
+          context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/${{ env.IMAGE_VERSION }}/build/
+          file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/${{ env.IMAGE_VERSION }}/build/Dockerfile
+          platforms: ${{ matrix.platform }}
+          cache-from: type=gha,scope=${{ github.workflow }}-${{ env.IMAGE_VERSION }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ env.IMAGE_VERSION }}-${{ matrix.arch }}
+          outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
 
-      - name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.docker_build.outputs.digest }}"
+          digest="${digest#sha256:}"
+          touch "/tmp/digests/${digest}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v6
+        with:
+          name: digests-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    runs-on: ubuntu-latest
+    needs: build
+    env:
+      TZ: Asia/Shanghai
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v6
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Docker Login
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Login to AliDockerHub
         uses: docker/login-action@v4
@@ -78,17 +105,37 @@ jobs:
           username: ${{ secrets.ALI_DOCKER_HUB_USN }}
           password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
 
-      - name: ReTag and push to AliDockerHub
+      - name: Merge and push DockerHub multi-arch manifest
+        env:
+          IMAGE: ${{ env.IMAGE_NAME }}
         run: |
-          docker pull ${{ env.IMAGE_NAME }}:${{ matrix.IMAGE_VERSION }}
-
-          docker tag ${{ env.IMAGE_NAME }}:${{ matrix.IMAGE_VERSION }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ matrix.IMAGE_VERSION }}
-          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ matrix.IMAGE_VERSION }}
-
-          if [ "${{ matrix.IMAGE_VERSION }}" = "${{ env.LATEST_VERSION }}" ]; then
-            docker tag ${{ env.IMAGE_NAME }}:${{ matrix.IMAGE_VERSION }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
-            docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
+          set -euo pipefail
+          mapfile -t files < <(find /tmp/digests -type f)
+          if [ "${#files[@]}" -lt 2 ]; then
+            echo "::error::Expected at least 2 platform digests, got ${#files[@]}"
+            find /tmp/digests -ls || true
+            exit 1
           fi
+          refs=()
+          for f in "${files[@]}"; do
+            refs+=("${IMAGE}@sha256:$(basename "$f")")
+          done
+          docker buildx imagetools create \
+            -t "${IMAGE}:${{ env.IMAGE_VERSION }}" \
+            -t "${IMAGE}:latest" \
+            "${refs[@]}"
+
+      - name: Merge and push AliDockerHub multi-arch manifest
+        run: |
+          set -euo pipefail
+          docker pull ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
+          docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} \
+            ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
+          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}
+
+          docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }} \
+            ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
+          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
 
       - name: Sync image to Ali servers
         env:
@@ -127,20 +174,14 @@ jobs:
           REMOTE_EOF
           }
 
-          ALI_IMAGE="${ALI_REGISTRY}/blankhang/${{ env.IMAGE }}:${{ matrix.IMAGE_VERSION }}"
-          LOCAL_IMAGE="${{ env.IMAGE_NAME }}:${{ matrix.IMAGE_VERSION }}"
+          ALI_IMAGE="${ALI_REGISTRY}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}"
+          LOCAL_IMAGE="${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}"
+          ALI_LATEST="${ALI_REGISTRY}/blankhang/${{ env.IMAGE }}:latest"
+          LOCAL_LATEST="${{ env.IMAGE_NAME }}:latest"
 
           IFS=',' read -ra HOSTS <<< "$SERVER_HOSTNAMES"
           for host in "${HOSTS[@]}"; do
             [ -n "$host" ] || continue
             sync_image_on_server "$host" "$ALI_IMAGE" "$LOCAL_IMAGE"
+            sync_image_on_server "$host" "$ALI_LATEST" "$LOCAL_LATEST"
           done
-
-          if [ "${{ matrix.IMAGE_VERSION }}" = "${{ env.LATEST_VERSION }}" ]; then
-            ALI_LATEST="${ALI_REGISTRY}/blankhang/${{ env.IMAGE }}:latest"
-            LOCAL_LATEST="${{ env.IMAGE_NAME }}:latest"
-            for host in "${HOSTS[@]}"; do
-              [ -n "$host" ] || continue
-              sync_image_on_server "$host" "$ALI_LATEST" "$LOCAL_LATEST"
-            done
-          fi
