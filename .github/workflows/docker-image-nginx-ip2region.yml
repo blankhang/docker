@@ -525,6 +525,35 @@ jobs:
             echo "asset_arm64_sha256=${ASSET_ARM64_SHA256}"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Sync amd64 module to Ali servers
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ALI_SERVER_PRIVATE_KEY }}
+          SERVER_HOSTNAMES: ${{ secrets.ALI_SERVER_HOSTNAMES }}
+          MODULE_FILE: ${{ steps.release_meta.outputs.asset_amd64_file }}
+          REMOTE_DIR: /docker/nginx/ip
+        run: |
+          set -euo pipefail
+          if [ ! -f "${MODULE_FILE}" ]; then
+            echo "::error::Module file not found: ${MODULE_FILE}"
+            exit 1
+          fi
+          MODULE_NAME="$(basename "${MODULE_FILE}")"
+
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          IFS=',' read -ra HOSTS <<< "$SERVER_HOSTNAMES"
+          for host in "${HOSTS[@]}"; do
+            host="$(echo "$host" | xargs)"
+            [ -n "$host" ] || continue
+            echo "==> Syncing ${MODULE_NAME} to ${host}:${REMOTE_DIR}/"
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 9117 "root@${host}" \
+              "mkdir -p '${REMOTE_DIR}'"
+            scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 9117 \
+              "${MODULE_FILE}" "root@${host}:${REMOTE_DIR}/${MODULE_NAME}"
+          done
+
       - name: Publish module to GitHub Release
         uses: softprops/action-gh-release@v3
         with:
