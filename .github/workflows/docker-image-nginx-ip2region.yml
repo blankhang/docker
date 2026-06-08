@@ -14,6 +14,10 @@ on:
         required: false
         default: false
         type: boolean
+      ali_server_hostnames:
+        required: false
+        type: string
+        default: wh-1.xhc-bot.com,wh-3.xhc-bot.com,sz-1.xhc-bot.com,sz-2.xhc-bot.com,sz-3.xhc-bot.com,sz-0.xhc-bot.com,sz-01.xhc-bot.com,us-1.xhc-bot.com,us-2.xhc-bot.com,us-3.xhc-bot.com,us-4.xhc-bot.com
   workflow_dispatch:
     inputs:
       nginx_version:
@@ -30,6 +34,11 @@ on:
         required: false
         default: false
         type: boolean
+      ali_server_hostnames:
+        description: "阿里云服务器主机名列表，逗号分隔"
+        required: false
+        type: string
+        default: wh-1.xhc-bot.com,wh-3.xhc-bot.com,sz-1.xhc-bot.com,sz-2.xhc-bot.com,sz-3.xhc-bot.com,sz-0.xhc-bot.com,sz-01.xhc-bot.com,us-1.xhc-bot.com,us-2.xhc-bot.com,us-3.xhc-bot.com,us-4.xhc-bot.com
   schedule:
     - cron: "23 */6 * * *"
 
@@ -47,6 +56,7 @@ env:
   IP2REGION_REPO: https://github.com/blankhang/ip2region.git
   IP2REGION_REF: fac3d0376a7c75307104ac4fc65b945020f6cca2
   RELEASE_REPOSITORY: blankhang/ip2region
+  DEFAULT_ALI_SERVER_HOSTNAMES: wh-1.xhc-bot.com,wh-3.xhc-bot.com,sz-1.xhc-bot.com,sz-2.xhc-bot.com,sz-3.xhc-bot.com,sz-0.xhc-bot.com,sz-01.xhc-bot.com,us-1.xhc-bot.com,us-2.xhc-bot.com,us-3.xhc-bot.com,us-4.xhc-bot.com
 
 jobs:
   detect-version:
@@ -528,7 +538,7 @@ jobs:
       - name: Sync amd64 module to Ali servers
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ALI_SERVER_PRIVATE_KEY }}
-          SERVER_HOSTNAMES: ${{ secrets.ALI_SERVER_HOSTNAMES }}
+          SERVER_HOSTNAMES: ${{ inputs.ali_server_hostnames || github.event.inputs.ali_server_hostnames || env.DEFAULT_ALI_SERVER_HOSTNAMES }}
           MODULE_FILE: ${{ steps.release_meta.outputs.asset_amd64_file }}
           REMOTE_DIR: /docker/nginx/ip
         run: |
