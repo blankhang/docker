@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
     inputs:
       nginx_version:
-        description: "指定 nginx 版本，留空则自动检测最新稳定版"
+        description: "指定 nginx 版本，留空则自动检测最新 mainline 版"
         required: false
         type: string
       force_build:
@@ -34,7 +34,7 @@ on:
         default: false
         type: boolean
       set_latest:
-        description: "手动构建时，如果版本正好是最新稳定版则同步更新 latest"
+        description: "手动构建时，如果版本正好是最新 mainline 版则同步更新 latest"
         required: false
         default: false
         type: boolean
@@ -103,14 +103,14 @@ jobs:
           import urllib.error
           import urllib.request
 
-          stable_re = re.compile(r"^\d+\.\d+\.\d+$")
+          version_re = re.compile(r"^\d+\.\d+\.\d+$")
 
           def parse_version(version):
               return tuple(map(int, version.split(".")))
 
-          def is_stable_release(version):
+          def is_mainline_release(version):
               _, minor, _ = parse_version(version)
-              return minor % 2 == 0
+              return minor % 2 == 1
 
           def fetch_json(url):
               req = urllib.request.Request(
@@ -172,18 +172,18 @@ jobs:
               assets = {asset.get("name", "") for asset in payload.get("assets", [])}
               return True, all(name in assets for name in asset_names)
 
-          def latest_stable_nginx():
+          def latest_mainline_nginx():
               url = "https://hub.docker.com/v2/namespaces/library/repositories/nginx/tags?page_size=100"
               versions = set()
               while url:
                   payload = fetch_json(url)
                   for item in payload.get("results", []):
                       name = item.get("name", "")
-                      if stable_re.fullmatch(name) and is_stable_release(name):
+                      if version_re.fullmatch(name) and is_mainline_release(name):
                           versions.add(name)
                   url = payload.get("next")
               if not versions:
-                  raise RuntimeError("未获取到 nginx 稳定版标签")
+                  raise RuntimeError("未获取到 nginx mainline 版标签")
               return max(versions, key=parse_version)
 
           requested_version = os.environ.get("INPUT_NGINX_VERSION", "").strip()
@@ -194,12 +194,12 @@ jobs:
           release_repository = os.environ["RELEASE_REPOSITORY"]
           release_token = os.environ.get("RELEASE_TOKEN", "")
 
-          latest_version = latest_stable_nginx()
+          latest_version = latest_mainline_nginx()
           target_version = requested_version or latest_version
 
-          if not stable_re.fullmatch(target_version):
+          if not version_re.fullmatch(target_version):
               raise RuntimeError(
-                  f"只支持稳定版 x.y.z，当前输入为: {target_version or '<empty>'}"
+                  f"只支持 x.y.z 版本号，当前输入为: {target_version or '<empty>'}"
               )
 
           if not tag_exists("library/nginx", target_version):
