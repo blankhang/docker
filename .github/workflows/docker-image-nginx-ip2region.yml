@@ -287,9 +287,11 @@ jobs:
           echo "IP2REGION_REF=${IP2REGION_REF}"
 
       - name: Set up QEMU
+        if: matrix.arch == 'arm64'
         uses: docker/setup-qemu-action@v4
         with:
           platforms: all
+          cache-image: false
 
       - name: Set up Docker Buildx
         id: buildx
@@ -320,7 +322,7 @@ jobs:
 
       - name: Upload module artifact
         if: matrix.arch == 'amd64'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: nginx-ip2region-module-${{ env.TARGET_VERSION }}
           path: ./dist/ngx_http_ip2region_module.so
@@ -351,7 +353,7 @@ jobs:
           touch "/tmp/digests/${digest}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: digests-${{ matrix.arch }}
           path: /tmp/digests/*
@@ -372,7 +374,7 @@ jobs:
       SET_LATEST: ${{ needs.detect-version.outputs.set_latest }}
     steps:
       - name: Download digests
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           path: /tmp/digests
           pattern: digests-*
@@ -475,6 +477,8 @@ jobs:
 
       - name: Set up QEMU for multi-arch extraction
         uses: docker/setup-qemu-action@v4
+        with:
+          cache-image: false
 
       - name: Login to Docker Hub for release publishing
         uses: docker/login-action@v4
