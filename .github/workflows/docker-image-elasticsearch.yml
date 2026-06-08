@@ -89,3 +89,58 @@ jobs:
             docker tag ${{ env.IMAGE_NAME }}:${{ matrix.IMAGE_VERSION }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
             docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
           fi
+
+      - name: Sync image to Ali servers
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ALI_SERVER_PRIVATE_KEY }}
+          SERVER_HOSTNAMES: ${{ secrets.ALI_SERVER_HOSTNAMES }}
+          ALI_REGISTRY: ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}
+          ALI_USN: ${{ secrets.ALI_DOCKER_HUB_USN }}
+          ALI_PWD: ${{ secrets.ALI_DOCKER_HUB_PWD }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          sync_image_on_server() {
+            local host="$1"
+            local ali_image="$2"
+            local local_image="$3"
+            host="$(echo "$host" | xargs)"
+
+            echo "==> Syncing ${local_image} on ${host}..."
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 9117 "root@${host}" \
+              env \
+                ALI_REGISTRY="$ALI_REGISTRY" \
+                ALI_USN="$ALI_USN" \
+                ALI_PWD="$ALI_PWD" \
+                ALI_IMAGE="$ali_image" \
+                LOCAL_IMAGE="$local_image" \
+              bash -s <<'REMOTE_EOF'
+          set -euo pipefail
+          echo "$ALI_PWD" | docker login "$ALI_REGISTRY" -u "$ALI_USN" --password-stdin
+          docker pull "$ALI_IMAGE"
+          docker tag "$ALI_IMAGE" "$LOCAL_IMAGE"
+          docker rmi "$ALI_IMAGE" || true
+          REMOTE_EOF
+          }
+
+          ALI_IMAGE="${ALI_REGISTRY}/blankhang/${{ env.IMAGE }}:${{ matrix.IMAGE_VERSION }}"
+          LOCAL_IMAGE="${{ env.IMAGE_NAME }}:${{ matrix.IMAGE_VERSION }}"
+
+          IFS=',' read -ra HOSTS <<< "$SERVER_HOSTNAMES"
+          for host in "${HOSTS[@]}"; do
+            [ -n "$host" ] || continue
+            sync_image_on_server "$host" "$ALI_IMAGE" "$LOCAL_IMAGE"
+          done
+
+          if [ "${{ matrix.IMAGE_VERSION }}" = "${{ env.LATEST_VERSION }}" ]; then
+            ALI_LATEST="${ALI_REGISTRY}/blankhang/${{ env.IMAGE }}:latest"
+            LOCAL_LATEST="${{ env.IMAGE_NAME }}:latest"
+            for host in "${HOSTS[@]}"; do
+              [ -n "$host" ] || continue
+              sync_image_on_server "$host" "$ALI_LATEST" "$LOCAL_LATEST"
+            done
+          fi
