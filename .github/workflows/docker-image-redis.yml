@@ -30,6 +30,7 @@ jobs:
       uses: docker/setup-qemu-action@v4
       with:
         platforms: all
+        cache-image: false
 
     - name: Set up Docker Buildx
       id: buildx
