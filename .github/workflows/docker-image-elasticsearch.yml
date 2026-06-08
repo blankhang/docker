@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        IMAGE_VERSION: [9.4.1, 9.4.2]
+        IMAGE_VERSION: [9.4.2] # 可同时部署多个版本 如[9.4.1, 9.4.2]
     env:
       TZ: Asia/Shanghai
     steps:
