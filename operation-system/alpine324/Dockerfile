@@ -9,18 +9,24 @@ RUN apk add --no-cache ca-certificates bash curl openssl zip zstd tzdata tar fon
             && wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub \
             && wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.35-r1/glibc-2.35-r1.apk \
             && apk add --force-overwrite glibc-2.35-r1.apk \
-            && curl -Ls https://www.archlinux.org/packages/core/x86_64/gcc-libs/download > /tmp/gcc-libs.tar.zst \
-            && mkdir /tmp/gcc \
-            && zstd -d /tmp/gcc-libs.tar.zst \
-            && tar xvf /tmp/gcc-libs.tar -C /tmp/gcc \
-            && mv /tmp/gcc/usr/lib/libgcc* /tmp/gcc/usr/lib/libstdc++* /usr/glibc-compat/lib \
+            && curl -Ls https://www.archlinux.org/packages/core/x86_64/libgcc/download > /tmp/libgcc.tar.zst \
+            && mkdir -p /tmp/libgcc \
+            && zstd -d /tmp/libgcc.tar.zst -o /tmp/libgcc.tar \
+            && tar xf /tmp/libgcc.tar -C /tmp/libgcc \
+            && mv /tmp/libgcc/usr/lib/libgcc_s.so* /usr/glibc-compat/lib/ \
+            && curl -Ls https://www.archlinux.org/packages/core/x86_64/libstdc++/download > /tmp/libstdc++.tar.zst \
+            && mkdir -p /tmp/libstdcpp \
+            && zstd -d /tmp/libstdc++.tar.zst -o /tmp/libstdc++.tar \
+            && tar xf /tmp/libstdc++.tar -C /tmp/libstdcpp \
+            && mv /tmp/libstdcpp/usr/lib/libstdc++.so* /usr/glibc-compat/lib/ \
             && strip /usr/glibc-compat/lib/libgcc_s.so.* /usr/glibc-compat/lib/libstdc++.so* \
             && curl -Ls https://www.archlinux.org/packages/core/x86_64/zlib/download > /tmp/libz.tar.zst \
-            && mkdir /tmp/libz \
-            && tar -xf /tmp/libz.tar.zst -C /tmp/libz \
-            && mv /tmp/libz/usr/lib/libz.so* /usr/glibc-compat/lib \
+            && mkdir -p /tmp/libz \
+            && zstd -d /tmp/libz.tar.zst -o /tmp/libz.tar \
+            && tar xf /tmp/libz.tar -C /tmp/libz \
+            && mv /tmp/libz/usr/lib/libz.so* /usr/glibc-compat/lib/ \
             && apk del binutils \
-            && rm -rf glibc-2.35-r1.apk /tmp/gcc /tmp/gcc-libs.tar.zst /tmp/gcc-libs.tar /tmp/libz /tmp/libz.tar.zst \
+            && rm -rf glibc-2.35-r1.apk /tmp/libgcc /tmp/libgcc.tar* /tmp/libstdcpp /tmp/libstdc++.tar* /tmp/libz /tmp/libz.tar* \
             ;; \
         arm64) \
             echo "arm64: skip sgerrand glibc (x86_64 only), musl base only" \
