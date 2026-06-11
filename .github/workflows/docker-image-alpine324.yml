@@ -1,6 +1,8 @@
 name: Docker Image Alpine324 CI
 on:
   workflow_dispatch: #github页面手动触发
+  schedule:
+    - cron: "17 19 * * *" # 北京时间每天 03:17
   push:
     tags:
       - "v*.*" # github 发布tag时触发自动构建

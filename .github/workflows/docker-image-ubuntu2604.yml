@@ -1,6 +1,8 @@
 name: Docker Image Ubuntu2604  CI
 on:
   workflow_dispatch: #github页面手动触发
+  schedule:
+    - cron: "47 19 * * *" # 北京时间每天 03:47
   push:
     tags:
       - "v*.*" # github 发布tag时触发自动构建
