@@ -1,0 +1,132 @@
+name: Docker Image Alpine324 CI
+on:
+  workflow_dispatch: #github页面手动触发
+  push:
+    tags:
+      - "v*.*" # github 发布tag时触发自动构建
+# on:
+#   push:
+#     branches: [ "master" ]
+#   pull_request:
+#     branches: [ "master" ]
+
+env:
+  IMAGE_ROOT: operation-system
+  IMAGE: alpine324
+  IMAGE_NAME: blankhang/alpine324 #这是您的镜像名
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            arch: amd64
+          - platform: linux/arm64
+            arch: arm64
+    env:
+      TZ: Asia/Shanghai
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v6
+
+    - name: Set up QEMU
+      if: matrix.arch == 'arm64'
+      uses: docker/setup-qemu-action@v4
+      with:
+        platforms: all
+        cache-image: false
+
+    - name: Set up Docker Buildx
+      id: buildx
+      uses: docker/setup-buildx-action@v4
+
+    - name: Docker Login
+      #if: github.event_name !='pull_request'
+      uses: docker/login-action@v4
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build by platform and push by digest
+      id: docker_build
+      uses: docker/build-push-action@v7
+      with:
+        builder: ${{ steps.buildx.outputs.name }}
+        context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}
+        file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/Dockerfile
+        platforms: ${{ matrix.platform }}
+        cache-from: type=gha,scope=${{ github.workflow }}-${{ matrix.arch }}
+        cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ matrix.arch }}
+        outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+
+    - name: Export digest
+      run: |
+        mkdir -p /tmp/digests
+        digest="${{ steps.docker_build.outputs.digest }}"
+        digest="${digest#sha256:}"
+        touch "/tmp/digests/${digest}"
+
+    - name: Upload digest
+      uses: actions/upload-artifact@v7
+      with:
+        name: digests-${{ matrix.arch }}
+        path: /tmp/digests/*
+        if-no-files-found: error
+        retention-days: 1
+
+  merge:
+    runs-on: ubuntu-22.04
+    needs: build
+    env:
+      TZ: Asia/Shanghai
+    steps:
+    - name: Download digests
+      uses: actions/download-artifact@v7
+      with:
+        path: /tmp/digests
+        pattern: digests-*
+        merge-multiple: true
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v4
+
+    - name: Docker Login
+      uses: docker/login-action@v4
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Login to AliDockerHub
+      uses: docker/login-action@v4
+      with:
+        registry: ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}
+        username: ${{ secrets.ALI_DOCKER_HUB_USN }}
+        password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
+
+    - name: Merge and push DockerHub multi-arch manifest
+      env:
+        IMAGE: ${{ env.IMAGE_NAME }}
+      run: |
+        set -euo pipefail
+        mapfile -t files < <(find /tmp/digests -type f)
+        if [ "${#files[@]}" -lt 2 ]; then
+          echo "::error::Expected at least 2 platform digests, got ${#files[@]}"
+          find /tmp/digests -ls || true
+          exit 1
+        fi
+        refs=()
+        for f in "${files[@]}"; do
+          refs+=("${IMAGE}@sha256:$(basename "$f")")
+        done
+        docker buildx imagetools create -t "${IMAGE}:latest" "${refs[@]}"
+
+    - name: Merge and push AliDockerHub multi-arch manifest
+      run: |
+        set -euo pipefail
+        docker pull ${{ env.IMAGE_NAME }}:latest
+        docker tag ${{ env.IMAGE_NAME }}:latest \
+          ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
+        docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
