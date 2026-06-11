@@ -1,5 +1,6 @@
 ## arm64/amd64 arch alpine 3.24 image with chinese font support and GMT+8 TZ and openjdk 8 11 17 21 25
 ## 支持 arm64 amd64 架构的 alpine 3.24 带中文字体 GMT+8 时区的底包镜像，及 openjdk 8 11 17 21 25 镜像
+## 说明：glibc 兼容层（sgerrand 2.35-r1）仅 amd64 安装；arm64 为 musl 底包 + 中文字体
 
 source code at https://github.com/blankhang/docker/tree/master/operation-system/alpine324
 
