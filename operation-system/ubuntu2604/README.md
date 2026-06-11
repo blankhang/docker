@@ -1,12 +1,18 @@
-## arm64/amd64 arch ubuntu 2604 image with chinese font support and GMT+8 TZ and openjdk 25 (latest LTS)
-## 支持 arm64 amd64 架构的 ubuntu 2604 带中文字体 GMT+8 时区的底包镜像，及 openjdk 25（当前最新 LTS）镜像
+## arm64/amd64 arch ubuntu 2604 image with chinese font support and GMT+8 TZ and openjdk 17 21 25
+## 支持 arm64 amd64 架构的 ubuntu 2604 带中文字体 GMT+8 时区的底包镜像，及 openjdk 17 21 25 镜像
 source code at https://github.com/blankhang/docker/tree/master/ubuntu2604
 ### how to use 使用方法
 ```shell
 # ubuntu2604 最新底包
 docker pull blankhang/ubuntu2604
 
-# ubuntu 2604 + openjdk25（最新 LTS）
+# ubuntu 2604 + openjdk17
+docker pull blankhang/ubuntu2604:openjdk17
+
+# ubuntu 2604 + openjdk21
+docker pull blankhang/ubuntu2604:openjdk21
+
+# ubuntu 2604 + openjdk25
 docker pull blankhang/ubuntu2604:openjdk25
 ```
 

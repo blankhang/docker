@@ -14,7 +14,6 @@ env:
   IMAGE_ROOT: operation-system
   IMAGE: ubuntu2604
   IMAGE_REPO: blankhang/ubuntu2604
-  IMAGE_TAG_OPENJDK25: openjdk25
 
 jobs:
   build:
@@ -25,8 +24,22 @@ jobs:
         include:
           - platform: linux/amd64
             arch: amd64
+            jdk: 17
+          - platform: linux/amd64
+            arch: amd64
+            jdk: 21
+          - platform: linux/amd64
+            arch: amd64
+            jdk: 25
           - platform: linux/arm64
             arch: arm64
+            jdk: 17
+          - platform: linux/arm64
+            arch: arm64
+            jdk: 21
+          - platform: linux/arm64
+            arch: arm64
+            jdk: 25
     env:
       TZ: Asia/Shanghai
     steps:
@@ -51,29 +64,29 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build openjdk25 by platform and push by digest
-      id: openjdk25_build
+    - name: Build openjdk by platform and push by digest
+      id: openjdk_build
       uses: docker/build-push-action@v7
       with:
         builder: ${{ steps.buildx.outputs.name }}
         context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}
-        file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/openjdk25/Dockerfile
+        file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/openjdk${{ matrix.jdk }}/Dockerfile
         platforms: ${{ matrix.platform }}
-        cache-from: type=gha,scope=${{ github.workflow }}-${{ matrix.arch }}
-        cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ matrix.arch }}
+        cache-from: type=gha,scope=${{ github.workflow }}-openjdk${{ matrix.jdk }}-${{ matrix.arch }}
+        cache-to: type=gha,mode=max,scope=${{ github.workflow }}-openjdk${{ matrix.jdk }}-${{ matrix.arch }}
         outputs: type=image,name=${{ env.IMAGE_REPO }},push-by-digest=true,name-canonical=true,push=true
 
     - name: Export digest
       run: |
         mkdir -p /tmp/digests
-        digest="${{ steps.openjdk25_build.outputs.digest }}"
+        digest="${{ steps.openjdk_build.outputs.digest }}"
         digest="${digest#sha256:}"
         touch "/tmp/digests/${digest}"
 
     - name: Upload digest
       uses: actions/upload-artifact@v7
       with:
-        name: digests-${{ matrix.arch }}
+        name: digests-openjdk${{ matrix.jdk }}-${{ matrix.arch }}
         path: /tmp/digests/*
         if-no-files-found: error
         retention-days: 1
@@ -81,6 +94,10 @@ jobs:
   merge:
     runs-on: ubuntu-22.04
     needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [17, 21, 25]
     env:
       TZ: Asia/Shanghai
     steps:
@@ -88,7 +105,7 @@ jobs:
       uses: actions/download-artifact@v7
       with:
         path: /tmp/digests
-        pattern: digests-*
+        pattern: digests-openjdk${{ matrix.jdk }}-*
         merge-multiple: true
 
     - name: Set up Docker Buildx
@@ -110,12 +127,12 @@ jobs:
     - name: Merge and push DockerHub multi-arch manifest
       env:
         IMAGE: ${{ env.IMAGE_REPO }}
-        TAG: ${{ env.IMAGE_TAG_OPENJDK25 }}
+        TAG: openjdk${{ matrix.jdk }}
       run: |
         set -euo pipefail
         mapfile -t files < <(find /tmp/digests -type f)
         if [ "${#files[@]}" -lt 2 ]; then
-          echo "::error::Expected at least 2 platform digests, got ${#files[@]}"
+          echo "::error::Expected at least 2 platform digests for openjdk${{ matrix.jdk }}, got ${#files[@]}"
           find /tmp/digests -ls || true
           exit 1
         fi
@@ -128,7 +145,7 @@ jobs:
     - name: Merge and push AliDockerHub multi-arch manifest
       run: |
         set -euo pipefail
-        docker pull ${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_OPENJDK25 }}
-        docker tag ${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_OPENJDK25 }} \
-          ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_TAG_OPENJDK25 }}
-        docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_TAG_OPENJDK25 }}
+        docker pull ${{ env.IMAGE_REPO }}:openjdk${{ matrix.jdk }}
+        docker tag ${{ env.IMAGE_REPO }}:openjdk${{ matrix.jdk }} \
+          ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:openjdk${{ matrix.jdk }}
+        docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/${{ env.IMAGE }}:openjdk${{ matrix.jdk }}
