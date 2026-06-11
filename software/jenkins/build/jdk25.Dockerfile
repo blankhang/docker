@@ -1,6 +1,8 @@
 FROM jenkins/jenkins:lts-jdk25
 LABEL org.opencontainers.image.authors="blankhang@gmail.com"
 
+ARG TARGETARCH
+
 USER root
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -30,7 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd -f docker \
     && mkdir -p /etc/apt/keyrings \
     && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
-    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bullseye stable" \
+    && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bullseye stable" \
         > /etc/apt/sources.list.d/docker.list \
     && apt-get update && apt-get install -y docker-ce-cli \
     && usermod -a -G docker jenkins \

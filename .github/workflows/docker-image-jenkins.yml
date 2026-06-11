@@ -226,6 +226,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: detect-version
     if: needs.detect-version.outputs.should_build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            arch: amd64
+          - platform: linux/arm64
+            arch: arm64
     env:
       TZ: Asia/Shanghai
       LTS_VERSION: ${{ needs.detect-version.outputs.lts_version }}
@@ -233,6 +241,13 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        if: matrix.arch == 'arm64'
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: all
+          cache-image: false
 
       - name: Set up Docker Buildx
         id: buildx
@@ -244,7 +259,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build jdk25 image (non-android) and push
+      - name: Build jdk25 image by platform and push by digest
         id: build_jdk25
         uses: docker/build-push-action@v7
         with:
@@ -252,16 +267,53 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/build
           file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/build/jdk25.Dockerfile
-          platforms: linux/amd64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          push: true
-          tags: |
-            ${{ env.IMAGE_JDK_25_NAME }}
-            ${{ env.IMAGE_JDK_LATEST }}
+          platforms: ${{ matrix.platform }}
+          cache-from: type=gha,scope=${{ github.workflow }}-jdk25-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ github.workflow }}-jdk25-${{ matrix.arch }}
+          outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
 
-      - name: Image digest
-        run: echo ${{ steps.build_jdk25.outputs.digest }}
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build_jdk25.outputs.digest }}"
+          digest="${digest#sha256:}"
+          touch "/tmp/digests/${digest}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    runs-on: ubuntu-latest
+    needs:
+      - detect-version
+      - build
+    if: needs.detect-version.outputs.should_build == 'true'
+    env:
+      TZ: Asia/Shanghai
+      LTS_VERSION: ${{ needs.detect-version.outputs.lts_version }}
+      GIT_TAG: ${{ needs.detect-version.outputs.git_tag }}
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v7
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Docker Login
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Login to AliDockerHub
         uses: docker/login-action@v4
@@ -270,33 +322,49 @@ jobs:
           username: ${{ secrets.ALI_DOCKER_HUB_USN }}
           password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
 
-      - name: Tag and push versioned image
+      - name: Merge and push DockerHub multi-arch manifest
+        env:
+          IMAGE: ${{ env.IMAGE_NAME }}
         run: |
-          docker pull ${{ env.IMAGE_JDK_25_NAME }}
-
-          docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ env.IMAGE_NAME }}:lts-jdk25-${{ env.LTS_VERSION }}
-          docker push ${{ env.IMAGE_NAME }}:lts-jdk25-${{ env.LTS_VERSION }}
-
-          if [ -n "${{ needs.detect-version.outputs.git_tag }}" ] && [ "${{ needs.detect-version.outputs.git_tag }}" != "${{ env.LTS_VERSION }}" ]; then
-            docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ env.IMAGE_NAME }}:lts-jdk25-${{ needs.detect-version.outputs.git_tag }}
-            docker push ${{ env.IMAGE_NAME }}:lts-jdk25-${{ needs.detect-version.outputs.git_tag }}
+          set -euo pipefail
+          mapfile -t files < <(find /tmp/digests -type f)
+          if [ "${#files[@]}" -lt 2 ]; then
+            echo "::error::Expected at least 2 platform digests, got ${#files[@]}"
+            find /tmp/digests -ls || true
+            exit 1
           fi
+          refs=()
+          for f in "${files[@]}"; do
+            refs+=("${IMAGE}@sha256:$(basename "$f")")
+          done
+          tags=(
+            -t "${IMAGE}:lts-jdk25"
+            -t "${IMAGE}:latest"
+            -t "${IMAGE}:lts-jdk25-${LTS_VERSION}"
+          )
+          if [ -n "${GIT_TAG}" ] && [ "${GIT_TAG}" != "${LTS_VERSION}" ]; then
+            tags+=(-t "${IMAGE}:lts-jdk25-${GIT_TAG}")
+          fi
+          docker buildx imagetools create "${tags[@]}" "${refs[@]}"
 
-      - name: ReTag and push to AliDockerHub
+      - name: Merge and push AliDockerHub multi-arch manifest
+        env:
+          ALI_IMAGE: ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins
         run: |
-          docker pull ${{ env.IMAGE_JDK_25_NAME }}
+          set -euo pipefail
+          docker pull ${{ env.IMAGE_NAME }}:lts-jdk25
 
-          docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25
-          docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:latest
-          docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25-${{ env.LTS_VERSION }}
+          docker tag ${{ env.IMAGE_NAME }}:lts-jdk25 "${ALI_IMAGE}:lts-jdk25"
+          docker tag ${{ env.IMAGE_NAME }}:lts-jdk25 "${ALI_IMAGE}:latest"
+          docker tag ${{ env.IMAGE_NAME }}:lts-jdk25 "${ALI_IMAGE}:lts-jdk25-${LTS_VERSION}"
 
-          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25
-          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:latest
-          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25-${{ env.LTS_VERSION }}
+          docker push "${ALI_IMAGE}:lts-jdk25"
+          docker push "${ALI_IMAGE}:latest"
+          docker push "${ALI_IMAGE}:lts-jdk25-${LTS_VERSION}"
 
-          if [ -n "${{ needs.detect-version.outputs.git_tag }}" ] && [ "${{ needs.detect-version.outputs.git_tag }}" != "${{ env.LTS_VERSION }}" ]; then
-            docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25-${{ needs.detect-version.outputs.git_tag }}
-            docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25-${{ needs.detect-version.outputs.git_tag }}
+          if [ -n "${GIT_TAG}" ] && [ "${GIT_TAG}" != "${LTS_VERSION}" ]; then
+            docker tag ${{ env.IMAGE_NAME }}:lts-jdk25 "${ALI_IMAGE}:lts-jdk25-${GIT_TAG}"
+            docker push "${ALI_IMAGE}:lts-jdk25-${GIT_TAG}"
           fi
 
   skip-build:
