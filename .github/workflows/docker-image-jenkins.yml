@@ -1,24 +1,234 @@
 name: Docker Image Jenkins CI
 
 on:
-  workflow_dispatch: #github页面手动触发
+  workflow_dispatch:
+    inputs:
+      jenkins_lts_version:
+        description: "指定 Jenkins LTS 版本，留空则从 jenkins/jenkins Docker Hub 自动检测"
+        required: false
+        type: string
+      force_build:
+        description: "即使镜像标签已存在也强制重新构建"
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: "17 */6 * * *"
   push:
     tags:
-      - "v*.*" # 当发布 tag 时触发自动构建
+      - "v*.*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-image-jenkins
+  cancel-in-progress: false
 
 env:
   IMAGE_ROOT: software
   IMAGE: jenkins
   IMAGE_NAME: blankhang/jenkins
-  IMAGE_VERSION: lts-jdk25  # JDK 25 版本标识
+  IMAGE_VERSION: lts-jdk25
   IMAGE_JDK_25_NAME: blankhang/jenkins:lts-jdk25
   IMAGE_JDK_LATEST: blankhang/jenkins:latest
+  UPSTREAM_IMAGE: jenkins/jenkins
+  UPSTREAM_BASE_TAG: lts-jdk25
 
 jobs:
+  detect-version:
+    runs-on: ubuntu-latest
+    outputs:
+      lts_version: ${{ steps.detect.outputs.lts_version }}
+      upstream_digest: ${{ steps.detect.outputs.upstream_digest }}
+      image_exists: ${{ steps.detect.outputs.image_exists }}
+      should_build: ${{ steps.detect.outputs.should_build }}
+      git_tag: ${{ steps.detect.outputs.git_tag }}
+    steps:
+      - name: Detect Jenkins LTS version
+        id: detect
+        env:
+          INPUT_LTS_VERSION: ${{ github.event.inputs.jenkins_lts_version || '' }}
+          FORCE_BUILD: ${{ github.event.inputs.force_build || 'false' }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          UPSTREAM_IMAGE: ${{ env.UPSTREAM_IMAGE }}
+          UPSTREAM_BASE_TAG: ${{ env.UPSTREAM_BASE_TAG }}
+          GITHUB_REF: ${{ github.ref }}
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          import re
+          import urllib.error
+          import urllib.request
+
+          version_re = re.compile(r"^\d+\.\d+\.\d+$")
+          upstream_version_tag_re = re.compile(
+              rf"^(\d+\.\d+\.\d+)-{re.escape(os.environ['UPSTREAM_BASE_TAG'])}$"
+          )
+
+          def fetch_json(url):
+              req = urllib.request.Request(
+                  url,
+                  headers={"User-Agent": "github-actions-jenkins-lts"},
+              )
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  return json.load(resp)
+
+          def parse_version(version):
+              return tuple(map(int, version.split(".")))
+
+          def split_image(image_name):
+              namespace, repo = image_name.split("/", 1)
+              return namespace, repo
+
+          def tag_exists(image_name, tag):
+              namespace, repo = split_image(image_name)
+              url = (
+                  f"https://hub.docker.com/v2/namespaces/{namespace}/"
+                  f"repositories/{repo}/tags/{tag}"
+              )
+              req = urllib.request.Request(
+                  url,
+                  headers={"User-Agent": "github-actions-jenkins-lts"},
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=30):
+                      return True
+              except urllib.error.HTTPError as exc:
+                  if exc.code == 404:
+                      return False
+                  raise
+
+          def get_tag_info(image_name, tag):
+              namespace, repo = split_image(image_name)
+              url = (
+                  f"https://hub.docker.com/v2/namespaces/{namespace}/"
+                  f"repositories/{repo}/tags/{tag}"
+              )
+              try:
+                  payload = fetch_json(url)
+              except urllib.error.HTTPError as exc:
+                  if exc.code == 404:
+                      return "", ""
+                  raise
+              digest = ""
+              for image in payload.get("images", []):
+                  if image.get("os") == "linux" and image.get("architecture") == "amd64":
+                      digest = image.get("digest", "")
+                      break
+              if not digest:
+                  digest = payload.get("digest", "")
+              return digest, payload.get("tag_last_pushed", "")
+
+          def latest_lts_from_upstream():
+              namespace, repo = split_image(os.environ["UPSTREAM_IMAGE"])
+              base_tag = os.environ["UPSTREAM_BASE_TAG"]
+              versions = set()
+              url = (
+                  f"https://hub.docker.com/v2/repositories/{namespace}/{repo}/tags"
+                  f"?page_size=100&name={base_tag}"
+              )
+              while url:
+                  payload = fetch_json(url)
+                  for item in payload.get("results", []):
+                      match = upstream_version_tag_re.fullmatch(item.get("name", ""))
+                      if match:
+                          versions.add(match.group(1))
+                  url = payload.get("next")
+              if not versions:
+                  raise RuntimeError(
+                      f"未在 {os.environ['UPSTREAM_IMAGE']} 找到 *-{base_tag} 版本标签"
+                  )
+              return max(versions, key=parse_version)
+
+          requested_version = os.environ.get("INPUT_LTS_VERSION", "").strip()
+          force_build = os.environ.get("FORCE_BUILD", "false").lower() == "true"
+          image_name = os.environ["IMAGE_NAME"]
+          upstream_image = os.environ["UPSTREAM_IMAGE"]
+          upstream_base_tag = os.environ["UPSTREAM_BASE_TAG"]
+          github_ref = os.environ["GITHUB_REF"]
+
+          git_tag = ""
+          if github_ref.startswith("refs/tags/"):
+              git_tag = github_ref.removeprefix("refs/tags/v")
+
+          upstream_version = latest_lts_from_upstream()
+          lts_version = requested_version or upstream_version
+          if not version_re.fullmatch(lts_version):
+              raise RuntimeError(
+                  f"只支持 x.y.z 形式的 Jenkins LTS 版本，当前为: {lts_version or '<empty>'}"
+              )
+
+          upstream_tag = f"{lts_version}-{upstream_base_tag}"
+          if not tag_exists(upstream_image, upstream_tag):
+              raise RuntimeError(
+                  f"上游镜像不存在: {upstream_image}:{upstream_tag}"
+              )
+
+          upstream_digest, upstream_pushed_at = get_tag_info(upstream_image, upstream_tag)
+          _, upstream_base_pushed_at = get_tag_info(upstream_image, upstream_base_tag)
+
+          image_tag = f"lts-jdk25-{lts_version}"
+          image_exists = tag_exists(image_name, image_tag)
+          our_digest, our_pushed_at = (
+              get_tag_info(image_name, image_tag) if image_exists else ("", "")
+          )
+
+          upstream_newer = bool(
+              upstream_pushed_at
+              and our_pushed_at
+              and upstream_pushed_at > our_pushed_at
+          )
+
+          if git_tag:
+              should_build = True
+          elif force_build:
+              should_build = True
+          elif not image_exists:
+              should_build = True
+          elif upstream_newer:
+              should_build = True
+          else:
+              should_build = False
+
+          output_path = os.environ["GITHUB_OUTPUT"]
+          with open(output_path, "a", encoding="utf-8") as fh:
+              fh.write(f"lts_version={lts_version}\n")
+              fh.write(f"upstream_digest={upstream_digest}\n")
+              fh.write(f"image_exists={'true' if image_exists else 'false'}\n")
+              fh.write(f"should_build={'true' if should_build else 'false'}\n")
+              fh.write(f"git_tag={git_tag}\n")
+
+          print(f"upstream latest {upstream_base_tag}: {upstream_version}")
+          print(f"upstream tag: {upstream_image}:{upstream_tag}")
+          print(f"upstream digest: {upstream_digest}")
+          print(f"upstream pushed at: {upstream_pushed_at}")
+          print(f"upstream base pushed at: {upstream_base_pushed_at}")
+          print(f"target LTS version: {lts_version}")
+          print(f"our image tag: {image_name}:{image_tag}")
+          print(f"our digest: {our_digest or '<missing>'}")
+          print(f"our pushed at: {our_pushed_at or '<missing>'}")
+          print(f"upstream_newer: {upstream_newer}")
+          print(f"image_exists: {image_exists}")
+          print(f"should_build: {should_build}")
+          PY
+
+      - name: Show decision
+        run: |
+          echo "lts_version=${{ steps.detect.outputs.lts_version }}"
+          echo "upstream_digest=${{ steps.detect.outputs.upstream_digest }}"
+          echo "image_exists=${{ steps.detect.outputs.image_exists }}"
+          echo "should_build=${{ steps.detect.outputs.should_build }}"
+          echo "git_tag=${{ steps.detect.outputs.git_tag }}"
+
   build:
     runs-on: ubuntu-latest
+    needs: detect-version
+    if: needs.detect-version.outputs.should_build == 'true'
     env:
       TZ: Asia/Shanghai
+      LTS_VERSION: ${{ needs.detect-version.outputs.lts_version }}
 
     steps:
       - name: Checkout Repo
@@ -34,22 +244,11 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Get version tag
-        id: version
-        run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            VERSION_TAG="${GITHUB_REF#refs/tags/v}"
-            echo "tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
-            echo "Using git tag version: ${VERSION_TAG}"
-          else
-            echo "tag=" >> $GITHUB_OUTPUT
-            echo "No git tag, using default tags"
-          fi
-
       - name: Build jdk25 image (non-android) and push
         id: build_jdk25
         uses: docker/build-push-action@v7
         with:
+          pull: true
           builder: ${{ steps.buildx.outputs.name }}
           context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/build
           file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/build/jdk25.Dockerfile
@@ -71,12 +270,17 @@ jobs:
           username: ${{ secrets.ALI_DOCKER_HUB_USN }}
           password: ${{ secrets.ALI_DOCKER_HUB_PWD }}
 
-      - name: Tag and push versioned image (if git tag exists)
-        if: steps.version.outputs.tag != ''
+      - name: Tag and push versioned image
         run: |
           docker pull ${{ env.IMAGE_JDK_25_NAME }}
-          docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ env.IMAGE_NAME }}:lts-jdk25-${{ steps.version.outputs.tag }}
-          docker push ${{ env.IMAGE_NAME }}:lts-jdk25-${{ steps.version.outputs.tag }}
+
+          docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ env.IMAGE_NAME }}:lts-jdk25-${{ env.LTS_VERSION }}
+          docker push ${{ env.IMAGE_NAME }}:lts-jdk25-${{ env.LTS_VERSION }}
+
+          if [ -n "${{ needs.detect-version.outputs.git_tag }}" ] && [ "${{ needs.detect-version.outputs.git_tag }}" != "${{ env.LTS_VERSION }}" ]; then
+            docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ env.IMAGE_NAME }}:lts-jdk25-${{ needs.detect-version.outputs.git_tag }}
+            docker push ${{ env.IMAGE_NAME }}:lts-jdk25-${{ needs.detect-version.outputs.git_tag }}
+          fi
 
       - name: ReTag and push to AliDockerHub
         run: |
@@ -84,12 +288,23 @@ jobs:
 
           docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25
           docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:latest
+          docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25-${{ env.LTS_VERSION }}
 
           docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25
           docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:latest
+          docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25-${{ env.LTS_VERSION }}
 
-          # 如果有 git tag，推送带版本号的标签
-          if [ -n "${{ steps.version.outputs.tag }}" ]; then
-            docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25-${{ steps.version.outputs.tag }}
-            docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25-${{ steps.version.outputs.tag }}
+          if [ -n "${{ needs.detect-version.outputs.git_tag }}" ] && [ "${{ needs.detect-version.outputs.git_tag }}" != "${{ env.LTS_VERSION }}" ]; then
+            docker tag ${{ env.IMAGE_JDK_25_NAME }} ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25-${{ needs.detect-version.outputs.git_tag }}
+            docker push ${{ secrets.ALI_DOCKER_HUB_REGISTRY }}/blankhang/jenkins:lts-jdk25-${{ needs.detect-version.outputs.git_tag }}
           fi
+
+  skip-build:
+    runs-on: ubuntu-latest
+    needs: detect-version
+    if: needs.detect-version.outputs.should_build != 'true'
+    steps:
+      - name: No build needed
+        run: |
+          echo "Jenkins LTS ${{ needs.detect-version.outputs.lts_version }} 镜像已存在，跳过构建。"
+          echo "如需强制重建，请手动触发 workflow 并勾选 force_build。"
