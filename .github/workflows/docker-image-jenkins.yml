@@ -34,6 +34,7 @@ env:
   IMAGE_JDK_LATEST: blankhang/jenkins:latest
   UPSTREAM_IMAGE: jenkins/jenkins
   UPSTREAM_BASE_TAG: lts-jdk25
+  REQUIRED_PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
   detect-version:
@@ -42,6 +43,7 @@ jobs:
       lts_version: ${{ steps.detect.outputs.lts_version }}
       upstream_digest: ${{ steps.detect.outputs.upstream_digest }}
       image_exists: ${{ steps.detect.outputs.image_exists }}
+      missing_platforms: ${{ steps.detect.outputs.missing_platforms }}
       should_build: ${{ steps.detect.outputs.should_build }}
       git_tag: ${{ steps.detect.outputs.git_tag }}
     steps:
@@ -53,6 +55,7 @@ jobs:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           UPSTREAM_IMAGE: ${{ env.UPSTREAM_IMAGE }}
           UPSTREAM_BASE_TAG: ${{ env.UPSTREAM_BASE_TAG }}
+          REQUIRED_PLATFORMS: ${{ env.REQUIRED_PLATFORMS }}
           GITHUB_REF: ${{ github.ref }}
         run: |
           python3 <<'PY'
@@ -100,18 +103,34 @@ jobs:
                       return False
                   raise
 
-          def get_tag_info(image_name, tag):
+          def get_tag_payload(image_name, tag):
               namespace, repo = split_image(image_name)
               url = (
                   f"https://hub.docker.com/v2/namespaces/{namespace}/"
                   f"repositories/{repo}/tags/{tag}"
               )
               try:
-                  payload = fetch_json(url)
+                  return fetch_json(url)
               except urllib.error.HTTPError as exc:
                   if exc.code == 404:
-                      return "", ""
+                      return None
                   raise
+
+          def list_platforms(payload):
+              if not payload:
+                  return set()
+              platforms = set()
+              for image in payload.get("images", []):
+                  os_name = image.get("os")
+                  arch = image.get("architecture")
+                  if os_name and arch and os_name != "unknown" and arch != "unknown":
+                      platforms.add(f"{os_name}/{arch}")
+              return platforms
+
+          def get_tag_info(image_name, tag):
+              payload = get_tag_payload(image_name, tag)
+              if not payload:
+                  return "", ""
               digest = ""
               for image in payload.get("images", []):
                   if image.get("os") == "linux" and image.get("architecture") == "amd64":
@@ -120,6 +139,13 @@ jobs:
               if not digest:
                   digest = payload.get("digest", "")
               return digest, payload.get("tag_last_pushed", "")
+
+          def missing_required_platforms(image_name, tag, required_platforms):
+              payload = get_tag_payload(image_name, tag)
+              if not payload:
+                  return list(required_platforms)
+              present = list_platforms(payload)
+              return sorted(required_platforms - present)
 
           def latest_lts_from_upstream():
               namespace, repo = split_image(os.environ["UPSTREAM_IMAGE"])
@@ -169,10 +195,19 @@ jobs:
           upstream_digest, upstream_pushed_at = get_tag_info(upstream_image, upstream_tag)
           _, upstream_base_pushed_at = get_tag_info(upstream_image, upstream_base_tag)
 
+          required_platforms = {
+              item.strip()
+              for item in os.environ.get("REQUIRED_PLATFORMS", "linux/amd64,linux/arm64").split(",")
+              if item.strip()
+          }
+
           image_tag = f"lts-jdk25-{lts_version}"
           image_exists = tag_exists(image_name, image_tag)
           our_digest, our_pushed_at = (
               get_tag_info(image_name, image_tag) if image_exists else ("", "")
+          )
+          missing_platforms = missing_required_platforms(
+              image_name, image_tag, required_platforms
           )
 
           upstream_newer = bool(
@@ -187,6 +222,8 @@ jobs:
               should_build = True
           elif not image_exists:
               should_build = True
+          elif missing_platforms:
+              should_build = True
           elif upstream_newer:
               should_build = True
           else:
@@ -197,9 +234,11 @@ jobs:
               fh.write(f"lts_version={lts_version}\n")
               fh.write(f"upstream_digest={upstream_digest}\n")
               fh.write(f"image_exists={'true' if image_exists else 'false'}\n")
+              fh.write(f"missing_platforms={','.join(missing_platforms)}\n")
               fh.write(f"should_build={'true' if should_build else 'false'}\n")
               fh.write(f"git_tag={git_tag}\n")
 
+          print(f"required platforms: {sorted(required_platforms)}")
           print(f"upstream latest {upstream_base_tag}: {upstream_version}")
           print(f"upstream tag: {upstream_image}:{upstream_tag}")
           print(f"upstream digest: {upstream_digest}")
@@ -209,6 +248,7 @@ jobs:
           print(f"our image tag: {image_name}:{image_tag}")
           print(f"our digest: {our_digest or '<missing>'}")
           print(f"our pushed at: {our_pushed_at or '<missing>'}")
+          print(f"missing platforms: {missing_platforms or '<none>'}")
           print(f"upstream_newer: {upstream_newer}")
           print(f"image_exists: {image_exists}")
           print(f"should_build: {should_build}")
@@ -219,6 +259,7 @@ jobs:
           echo "lts_version=${{ steps.detect.outputs.lts_version }}"
           echo "upstream_digest=${{ steps.detect.outputs.upstream_digest }}"
           echo "image_exists=${{ steps.detect.outputs.image_exists }}"
+          echo "missing_platforms=${{ steps.detect.outputs.missing_platforms }}"
           echo "should_build=${{ steps.detect.outputs.should_build }}"
           echo "git_tag=${{ steps.detect.outputs.git_tag }}"
 
@@ -374,5 +415,7 @@ jobs:
     steps:
       - name: No build needed
         run: |
-          echo "Jenkins LTS ${{ needs.detect-version.outputs.lts_version }} 镜像已存在，跳过构建。"
+          echo "Jenkins LTS ${{ needs.detect-version.outputs.lts_version }} 已满足构建条件，跳过。"
+          echo "required platforms: ${{ env.REQUIRED_PLATFORMS }}"
+          echo "missing platforms: ${{ needs.detect-version.outputs.missing_platforms || 'none' }}"
           echo "如需强制重建，请手动触发 workflow 并勾选 force_build。"
