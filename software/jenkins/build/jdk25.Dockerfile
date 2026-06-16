@@ -10,7 +10,7 @@ ENV TZ=Asia/Shanghai
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
-ENV NODEJS_VERSION=24
+ENV NODEJS_VERSION=26
 ENV GRADLE_VERSION=9.5.1
 ENV GRADLE_USER_HOME=/.gradle
 ENV GRADLE_HOME=/opt/gradle
@@ -77,4 +77,5 @@ RUN jenkins-plugin-cli --plugins \
   workflow-durable-task-step \
   docker-plugin \
   docker-workflow \
-  localization-zh-cn
+  localization-zh-cn \
+  uno-choice
