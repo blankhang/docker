@@ -21,7 +21,7 @@ services:
         hard: -1
     deploy:
       placement:
-        constraints: [node.hostname == xhc-wh-1]
+        constraints: [node.hostname == xhc-sz-1]
       resources:
         limits:
           memory: 6G
@@ -71,7 +71,7 @@ services:
         hard: -1
     deploy:
       placement:
-        constraints: [node.hostname == xhc-wh-2]
+        constraints: [node.hostname == xhc-sz-2]
       resources:
         limits:
           memory: 6G
@@ -120,7 +120,7 @@ services:
         hard: -1
     deploy:
       placement:
-        constraints: [node.hostname == xhc-wh-3]
+        constraints: [node.hostname == xhc-sz-3]
       resources:
         limits:
           memory: 6G
@@ -160,7 +160,7 @@ services:
       - "15601:5601"
     deploy:
       placement:
-        constraints: [node.hostname == xhc-wh-1]
+        constraints: [node.hostname == xhc-sz-1]
       resources:
         limits:
           memory: 1G
