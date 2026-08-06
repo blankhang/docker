@@ -123,16 +123,16 @@ jobs:
             -t "${IMAGE}:latest" \
             "${refs[@]}"
 
-      - name: Merge and push AliDockerHub multi-arch manifest
+      - name: Copy multi-arch manifest to Ali Registry
         run: |
           set -euo pipefail
-          docker pull ${{ env.IMAGE_NAME }}:latest
-          docker tag ${{ env.IMAGE_NAME }}:latest \
-            ${{ secrets.ALI_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
-          docker push ${{ secrets.ALI_REGISTRY }}/blankhang/${{ env.IMAGE }}:latest
-          docker tag ${{ env.IMAGE_NAME }}:latest \
-            ${{ secrets.ALI_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}-management
-          docker push ${{ secrets.ALI_REGISTRY }}/blankhang/${{ env.IMAGE }}:${{ env.IMAGE_VERSION }}-management
+          SRC="${{ env.IMAGE_NAME }}:latest"
+          ALI="${{ secrets.ALI_REGISTRY }}/blankhang/${{ env.IMAGE }}"
+          docker buildx imagetools create \
+            --tag "${ALI}:latest" \
+            --tag "${ALI}:${{ env.IMAGE_VERSION }}-management" \
+            "${SRC}"
+          docker buildx imagetools inspect "${ALI}:latest"
 
       - name: Sync image to Ali servers
         env:

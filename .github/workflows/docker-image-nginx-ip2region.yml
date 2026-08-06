@@ -437,18 +437,17 @@ jobs:
           fi
           docker buildx imagetools create "${tag_args[@]}" "${refs[@]}"
 
-      - name: Merge and push AliDockerHub multi-arch manifest
+      - name: Copy multi-arch manifest to Ali Registry
         run: |
           set -euo pipefail
-          docker pull "${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
-          docker tag "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" \
-            "${{ secrets.ALI_REGISTRY }}/blankhang/nginx-ip2region:${TARGET_VERSION}"
-          docker push "${{ secrets.ALI_REGISTRY }}/blankhang/nginx-ip2region:${TARGET_VERSION}"
+          SRC="${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
+          ALI="${{ secrets.ALI_REGISTRY }}/blankhang/nginx-ip2region"
+          tags=(--tag "${ALI}:${TARGET_VERSION}")
           if [ "${SET_LATEST}" = "true" ]; then
-            docker tag "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" \
-              "${{ secrets.ALI_REGISTRY }}/blankhang/nginx-ip2region:latest"
-            docker push "${{ secrets.ALI_REGISTRY }}/blankhang/nginx-ip2region:latest"
+            tags+=(--tag "${ALI}:latest")
           fi
+          docker buildx imagetools create "${tags[@]}" "${SRC}"
+          docker buildx imagetools inspect "${ALI}:${TARGET_VERSION}"
 
       - name: Smoke test module load
         run: |

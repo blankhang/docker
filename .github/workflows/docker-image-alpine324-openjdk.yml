@@ -156,10 +156,11 @@ jobs:
         done
         docker buildx imagetools create -t "${IMAGE}:${TAG}" "${refs[@]}"
 
-    - name: Merge and push AliDockerHub multi-arch manifest
+    - name: Copy multi-arch manifest to Ali Registry
       run: |
         set -euo pipefail
-        docker pull ${{ env.IMAGE_REPO }}:openjdk${{ matrix.jdk }}
-        docker tag ${{ env.IMAGE_REPO }}:openjdk${{ matrix.jdk }} \
-          ${{ secrets.ALI_REGISTRY }}/blankhang/${{ env.IMAGE }}:openjdk${{ matrix.jdk }}
-        docker push ${{ secrets.ALI_REGISTRY }}/blankhang/${{ env.IMAGE }}:openjdk${{ matrix.jdk }}
+        TAG="openjdk${{ matrix.jdk }}"
+        SRC="${{ env.IMAGE_REPO }}:${TAG}"
+        ALI="${{ secrets.ALI_REGISTRY }}/blankhang/${{ env.IMAGE }}:${TAG}"
+        docker buildx imagetools create --tag "${ALI}" "${SRC}"
+        docker buildx imagetools inspect "${ALI}"

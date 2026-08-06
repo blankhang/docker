@@ -388,25 +388,22 @@ jobs:
           fi
           docker buildx imagetools create "${tags[@]}" "${refs[@]}"
 
-      - name: Merge and push AliDockerHub multi-arch manifest
+      - name: Copy multi-arch manifest to Ali Registry
         env:
           ALI_IMAGE: ${{ secrets.ALI_REGISTRY }}/blankhang/jenkins
         run: |
           set -euo pipefail
-          docker pull ${{ env.IMAGE_NAME }}:lts-jdk25
-
-          docker tag ${{ env.IMAGE_NAME }}:lts-jdk25 "${ALI_IMAGE}:lts-jdk25"
-          docker tag ${{ env.IMAGE_NAME }}:lts-jdk25 "${ALI_IMAGE}:latest"
-          docker tag ${{ env.IMAGE_NAME }}:lts-jdk25 "${ALI_IMAGE}:lts-jdk25-${LTS_VERSION}"
-
-          docker push "${ALI_IMAGE}:lts-jdk25"
-          docker push "${ALI_IMAGE}:latest"
-          docker push "${ALI_IMAGE}:lts-jdk25-${LTS_VERSION}"
-
+          SRC="${{ env.IMAGE_NAME }}:lts-jdk25"
+          tags=(
+            --tag "${ALI_IMAGE}:lts-jdk25"
+            --tag "${ALI_IMAGE}:latest"
+            --tag "${ALI_IMAGE}:lts-jdk25-${LTS_VERSION}"
+          )
           if [ -n "${GIT_TAG}" ] && [ "${GIT_TAG}" != "${LTS_VERSION}" ]; then
-            docker tag ${{ env.IMAGE_NAME }}:lts-jdk25 "${ALI_IMAGE}:lts-jdk25-${GIT_TAG}"
-            docker push "${ALI_IMAGE}:lts-jdk25-${GIT_TAG}"
+            tags+=(--tag "${ALI_IMAGE}:lts-jdk25-${GIT_TAG}")
           fi
+          docker buildx imagetools create "${tags[@]}" "${SRC}"
+          docker buildx imagetools inspect "${ALI_IMAGE}:lts-jdk25"
 
   skip-build:
     runs-on: ubuntu-latest

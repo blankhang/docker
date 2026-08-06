@@ -387,16 +387,17 @@ jobs:
           username: ${{ secrets.ALI_REGISTRY_USERNAME }}
           password: ${{ secrets.ALI_REGISTRY_PASSWORD }}
 
-      - name: ReTag and push to AliDockerHub
+      - name: Copy multi-arch manifest to Ali Registry
         run: |
-          docker pull "${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
-          docker tag "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" "${{ secrets.ALI_REGISTRY }}/blankhang/nginx-geoip2:${TARGET_VERSION}"
-          docker push "${{ secrets.ALI_REGISTRY }}/blankhang/nginx-geoip2:${TARGET_VERSION}"
-
+          set -euo pipefail
+          SRC="${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
+          ALI="${{ secrets.ALI_REGISTRY }}/blankhang/nginx-geoip2"
+          tags=(--tag "${ALI}:${TARGET_VERSION}")
           if [ "${SET_LATEST}" = "true" ]; then
-            docker tag "${{ env.IMAGE_NAME }}:${TARGET_VERSION}" "${{ secrets.ALI_REGISTRY }}/blankhang/nginx-geoip2:latest"
-            docker push "${{ secrets.ALI_REGISTRY }}/blankhang/nginx-geoip2:latest"
+            tags+=(--tag "${ALI}:latest")
           fi
+          docker buildx imagetools create "${tags[@]}" "${SRC}"
+          docker buildx imagetools inspect "${ALI}:${TARGET_VERSION}"
 
   publish-release:
     runs-on: ubuntu-latest
