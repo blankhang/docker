@@ -2,7 +2,7 @@ name: Docker Image ElasticSearch  CI
 # GitHub Actions secrets（勿混用）：
 #   DOCKER_HUB_USERNAME / DOCKER_HUB_PASSWORD  → hub.docker.com（无 registry 的 docker login）
 #   ALI_REGISTRY / ALI_REGISTRY_USERNAME / ALI_REGISTRY_PASSWORD → 阿里云容器镜像服务
-#   ALI_SERVER_PRIVATE_KEY / ALI_SERVER_HOSTNAMES → 同步镜像到业务机
+#   ALI_SERVER_PRIVATE_KEY → 同步镜像到业务机（主机列表见 env.DEFAULT_ALI_SERVER_HOSTNAMES）
 on:
   workflow_dispatch: #github页面手动触发
   push:
@@ -19,6 +19,7 @@ env:
   IMAGE: elasticsearch # 镜像
   IMAGE_NAME: blankhang/elasticsearch #这是您的镜像名
   IMAGE_VERSION: "9.4.4" # 当前发布版本（全插件：ik/pinyin/stconvert）
+  DEFAULT_ALI_SERVER_HOSTNAMES: sz-1.xhc-bot.com,sz-2.xhc-bot.com,sz-3.xhc-bot.com,sz-4.xhc-bot.com,sz-5.xhc-bot.com,sz-6.xhc-bot.com,wh-1.xhc-bot.com,wh-2.xhc-bot.com,wh-3.xhc-bot.com,us-1.xhc-bot.com,us-2.xhc-bot.com,us-3.xhc-bot.com
 
 jobs:
 
@@ -146,7 +147,7 @@ jobs:
       - name: Sync image to Ali servers
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ALI_SERVER_PRIVATE_KEY }}
-          SERVER_HOSTNAMES: ${{ secrets.ALI_SERVER_HOSTNAMES }}
+          SERVER_HOSTNAMES: ${{ env.DEFAULT_ALI_SERVER_HOSTNAMES }}
           ALI_REGISTRY: ${{ secrets.ALI_REGISTRY }}
           ALI_USN: ${{ secrets.ALI_REGISTRY_USERNAME }}
           ALI_PWD: ${{ secrets.ALI_REGISTRY_PASSWORD }}

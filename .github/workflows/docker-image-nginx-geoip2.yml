@@ -65,7 +65,7 @@ env:
   GEOIP2_REPO: https://github.com/blankhang/geoip2.git
   GEOIP2_REF: cbaa35461c62a99d2577e6bae3273492502d8769
   RELEASE_REPOSITORY: blankhang/geoip2
-  DEFAULT_ALI_SERVER_HOSTNAMES: wh-1.xhc-bot.com,wh-2.xhc-bot.com,wh-3.xhc-bot.com,sz-1.xhc-bot.com,sz-2.xhc-bot.com,sz-3.xhc-bot.com,sz-0.xhc-bot.com,sz-01.xhc-bot.com,us-1.xhc-bot.com,us-2.xhc-bot.com,us-3.xhc-bot.com,us-4.xhc-bot.com
+  DEFAULT_ALI_SERVER_HOSTNAMES: sz-1.xhc-bot.com,sz-2.xhc-bot.com,sz-3.xhc-bot.com,sz-4.xhc-bot.com,sz-5.xhc-bot.com,sz-6.xhc-bot.com,wh-1.xhc-bot.com,wh-2.xhc-bot.com,wh-3.xhc-bot.com,us-1.xhc-bot.com,us-2.xhc-bot.com,us-3.xhc-bot.com
 
 jobs:
   detect-version:
