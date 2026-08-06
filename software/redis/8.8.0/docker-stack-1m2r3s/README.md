@@ -2,12 +2,12 @@
 
 **Docker Swarm** 主从复制 + **3 节点 Sentinel** 自动故障转移（非 Redis Cluster）。
 
-| 节点 | 公网 IP | 内网 IP（VPC） | 角色 | 发布端口 |
-|------|---------|----------------|------|----------|
-| sz-1 | `120.24.64.42` | `172.29.240.103` | master | **55502**（本 stack；**55002 留给旧 compose**） |
-| sz-2 | `120.79.138.3` | `172.29.240.104` | replica-1 | **55512**（VPC） |
-| sz-3 | `120.76.239.44` | `172.29.240.105` | replica-2 | **55513**（VPC） |
-| 三机内网 | — | `172.29.240.10x` | Sentinel（sentinel-1 发布 **55503**） | **55503**（VPC） |
+| 区域 | 配置文件 | 节点内网（master / replica / Sentinel） | 发布端口 |
+|------|----------|----------------------------------------|----------|
+| **sz** | [env/sz.env](env/sz.env) | `172.29.240.103` / `.104` / `.105` | 55502 / 55512 / 55513 / **55503** |
+| **wh** | [env/wh.env](env/wh.env) | `172.23.108.73` / `.74` / `.75` | 同上 |
+
+sz 公网：`120.24.64.42`、`120.79.138.3`、`120.76.239.44`（见 `env/sz.env`）。**55002** 留给旧 compose，与本 stack **55502** 勿同机冲突。
 
 **双栈**：master **55502**（公网 + VPC 内网同一端口）；从库 announce `55512/55513`；**55002** 仅旧 `docker-compose`；**prod-sz** Sentinel `55503`。
 
@@ -17,7 +17,7 @@
 |------|-----|
 | 宿主机部署目录 | `/docker/redis/redis-stack-1m2r3s` |
 | 数据目录 | `/docker/redis/redis-stack-1m2r3s/data/{master,replica-1,replica-2}` |
-| Swarm stack 名 | `redis-1m2r3s`（overlay 网：`redis-1m2r3s_redis-repl-net`） |
+| Swarm stack 名 | `redis-stack-1m2r3s`（overlay 网：`redis-stack-1m2r3s_redis-repl-net`） |
 
 ## 1. 架构
 
@@ -77,19 +77,32 @@ printf '%s' "${REDIS_PASSWORD:-changeme}" | docker secret create redis_1m2r3s_pa
 
 ## 3. 部署
 
+将本目录同步到三台 Swarm 节点 `/docker/redis/redis-stack-1m2r3s` 后，在 **manager** 上按机房执行（会先 `source env/sz.env` 或 `env/wh.env`，再 `docker stack deploy`）：
+
 ```bash
 cd /docker/redis/redis-stack-1m2r3s
-docker stack deploy -c redis-stack.yml redis-1m2r3s
+chmod +x scripts/*.sh
+
+# 深圳
+./scripts/deploy.sh sz
+
+# 武汉（Sentinel monitor / GET-MASTER-ADDR 将返回 172.23.108.x，不再写死 sz IP）
+./scripts/deploy.sh wh
+
 docker service ls
 ```
 
 期望 6 个服务均为 `1/1`（含 `redis-sentinel-1` ~ `3`）。
 
+**武汉若曾用 sz 的 env 部署过**：必须 `./scripts/deploy.sh wh` 全量更新服务环境变量，否则 Jedis 仍会连 `172.29.240.103`。
+
+**端口冲突 `55502 is already in use`**：多为误建了废弃 stack 名 `redis-stack-1m2r3s`，与正式名 `redis-stack-1m2r3s` 并存。先 `docker stack rm redis-stack-1m2r3s`，再 `./scripts/deploy.sh sz|wh`（`env/*.env` 中 `STACK_NAME=redis-stack-1m2r3s`）。
+
 验收：
 
 ```bash
 export REDIS_PASSWORD='changeme'  # 生产见 .env.example
-./scripts/check-replication.sh
+./scripts/check-replication.sh sz   # 或 wh
 ```
 
 ## 4. 客户端连接
@@ -114,8 +127,9 @@ redis-cli -h 172.29.240.103 -p 55503 -a '密码' --no-auth-warning \
 |---------|----------|----------------|
 | dev-prod-sz / sb4 | [application-redis-direct.example.yml](spring/application-redis-direct.example.yml) | `host: 120.24.64.42` `port: 55502` |
 | prod-sz | [application-redis-sentinel.example.yml](spring/application-redis-sentinel.example.yml) | `sentinel.nodes: 172.29.240.10x:55503`，`master: myMaster` |
+| prod-wh | [application-redis-sentinel.wh.example.yml](spring/application-redis-sentinel.wh.example.yml) | `sentinel.nodes: 172.23.108.7x:55503` |
 
-xhc-api 已对齐：`xhc-admin` / `xhc-api-gate` / `xhc-api-wechat` 的 `application-dev-prod-sz.yml`、`application-prod-sz.yml`。
+xhc-api：`application-prod-sz.yml` / `application-prod-wh.yml` 已按上表内网 IP 配置。
 
 ## 5. 双栈：`REDIS_MONITOR_MODE`
 
@@ -165,7 +179,7 @@ docker secret rm redis_1m2s_password   # 无引用后
 printf '%s' "${REDIS_PASSWORD:-changeme}" | docker secret create redis_1m2r3s_password -
 
 cd /docker/redis/redis-stack-1m2r3s
-docker stack deploy -c redis-stack.yml redis-1m2r3s
+docker stack deploy -c redis-stack.yml redis-stack-1m2r3s
 ```
 
 ## 9. 常见问题
@@ -185,10 +199,10 @@ redis-cli -h 172.29.240.103 -p 55503 -a '密码' --no-auth-warning \
 若返回 `10.0.x.x`：Sentinel 仍是旧配置或未重建。同步最新 yml 后：
 
 ```bash
-docker stack deploy -c redis-stack.yml redis-1m2r3s
-docker service update --force redis-1m2r3s_redis-sentinel-1
-docker service update --force redis-1m2r3s_redis-sentinel-2
-docker service update --force redis-1m2r3s_redis-sentinel-3
+docker stack deploy -c redis-stack.yml redis-stack-1m2r3s
+docker service update --force redis-stack-1m2r3s_redis-sentinel-1
+docker service update --force redis-stack-1m2r3s_redis-sentinel-2
+docker service update --force redis-stack-1m2r3s_redis-sentinel-3
 ```
 
 日志首行应含 `sentinel-bootstrap v7` 与 `REDIS_MONITOR_MODE=internal → monitor 内网 172.29.240.103:55502`。
@@ -226,17 +240,17 @@ done
 ```bash
 cd /docker/redis/redis-stack-1m2r3s
 export SENTINEL_CONFIG_VERSION=v2   # 每次改 conf/sentinel.conf 须递增
-docker stack deploy -c redis-stack.yml redis-1m2r3s
-docker service update --force redis-1m2r3s_redis-sentinel-1
-docker service update --force redis-1m2r3s_redis-sentinel-2
-docker service update --force redis-1m2r3s_redis-sentinel-3
+docker stack deploy -c redis-stack.yml redis-stack-1m2r3s
+docker service update --force redis-stack-1m2r3s_redis-sentinel-1
+docker service update --force redis-stack-1m2r3s_redis-sentinel-2
+docker service update --force redis-stack-1m2r3s_redis-sentinel-3
 # 日志应变为 port=55503
 redis-cli -h 172.29.240.103 -p 55503 -a '你的密码' --no-auth-warning ping
 ```
 
 1. sz-1 上确认服务与端口：
    ```bash
-   docker service ps redis-1m2r3s_redis-sentinel-1
+   docker service ps redis-stack-1m2r3s_redis-sentinel-1
    redis-cli -h 172.29.240.103 -p 55503 -a '密码' --no-auth-warning ping
    ```
 2. Spring 使用内网 IP，勿用公网域名连 Sentinel：`172.29.240.103:55503` 等（见 `application-redis-sentinel.example.yml`）。
@@ -254,7 +268,7 @@ internal 模式 monitor `172.29.240.103:55502`，Sentinel 容器经 VPC/ingress 
 
 ```bash
 grep -n connect-timeout redis-stack.yml   # 应无输出
-docker service logs redis-1m2r3s_redis-sentinel-1 --tail 3
+docker service logs redis-stack-1m2r3s_redis-sentinel-1 --tail 3
 # 应含 sentinel-bootstrap v7
 ```
 
@@ -264,11 +278,11 @@ docker service logs redis-1m2r3s_redis-sentinel-1 --tail 3
 
 ### Sentinel 卡在「等待 redis-master 就绪」
 
-1. 确认 master `1/1`：`docker service ps redis-1m2r3s_redis-master`
-2. 强制重建 Sentinel：`docker service update --force redis-1m2r3s_redis-sentinel-{1,2,3}`
+1. 确认 master `1/1`：`docker service ps redis-stack-1m2r3s_redis-master`
+2. 强制重建 Sentinel：`docker service update --force redis-stack-1m2r3s_redis-sentinel-{1,2,3}`
 3. 进容器排查：
    ```bash
-   TASK=$(docker service ps redis-1m2r3s_redis-sentinel-1 -q --filter desired-state=running | head -1)
+   TASK=$(docker service ps redis-stack-1m2r3s_redis-sentinel-1 -q --filter desired-state=running | head -1)
    CID=$(docker inspect -f '{{.Status.ContainerStatus.ContainerID}}' "$TASK")
    docker exec -it "$CID" sh -c 'getent ahostsv4 redis-master; PW=$(cat /run/secrets/redis_password); timeout 3 redis-cli -h redis-master -p 55502 -a "$PW" --no-auth-warning ping'
    ```
@@ -280,7 +294,7 @@ docker service logs redis-1m2r3s_redis-sentinel-1 --tail 3
 
 ### `port '55503' is already in use by service ... sentinel-3`
 
-Swarm **ingress** 下同一 stack 只能有一个服务 `published: 55503`。本方案仅 `redis-sentinel-1` 发布；`sentinel-2/3` 经 overlay 参与 quorum。三台内网 IP 的 `:55503` 均可经 ingress 路由到 sentinel-1。若 deploy 半失败：`docker stack rm redis-1m2r3s` 后重新 deploy。
+Swarm **ingress** 下同一 stack 只能有一个服务 `published: 55503`。本方案仅 `redis-sentinel-1` 发布；`sentinel-2/3` 经 overlay 参与 quorum。三台内网 IP 的 `:55503` 均可经 ingress 路由到 sentinel-1。若 deploy 半失败：`docker stack rm redis-stack-1m2r3s` 后重新 deploy。
 
 ### 端口对照（1m2r3s vs 旧 compose）
 
@@ -294,10 +308,10 @@ Swarm **ingress** 下同一 stack 只能有一个服务 `published: 55503`。本
 
 | 操作 | 命令 |
 |------|------|
-| 更新 stack | `docker stack deploy -c redis-stack.yml redis-1m2r3s` |
+| 更新 stack | `docker stack deploy -c redis-stack.yml redis-stack-1m2r3s` |
 | 更新 Redis 配置 | `export REDIS_CONFIG_VERSION=v2` 后 deploy |
 | 更新 Sentinel 配置 | `export SENTINEL_CONFIG_VERSION=v2` 后 deploy |
-| 下线 | `docker stack rm redis-1m2r3s` |
+| 下线 | `docker stack rm redis-stack-1m2r3s` |
 
 ## 11. 文件
 

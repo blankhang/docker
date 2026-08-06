@@ -1,10 +1,8 @@
 # Redis 1 主 2 从 + Sentinel（主从复制，非 Cluster）
 # Docker Swarm Stack
 #
-# 双栈（master 统一 55502；宿主机 55002 留给旧 compose，勿与本 stack 冲突）：
-#   sz-1  公网 120.24.64.42  内网 172.29.240.103  master 55502（dev/sb4 公网 + prod VPC 内网）
-#   sz-2  公网 120.79.138.3  内网 172.29.240.104  replica 55512（VPC）
-#   sz-3  公网 120.76.239.44 内网 172.29.240.105  replica 55513（VPC）
+# 双栈（master 统一 55502；宿主机 55002 留给旧 compose，勿与本 stack 冲突）
+# 节点 IP 由 env/sz.env 或 env/wh.env 注入，部署：./scripts/deploy.sh sz|wh
 # 复制 overlay redis-master:55502；replica-announce master 55502 / replica 55512/55513
 # 内网：master 55502、replica 55512/55513；Sentinel 55503
 # Sentinel：monitor/announce 内网；sentinel-1 发布 55503
@@ -12,7 +10,7 @@
 # 前置：
 # 1) 各节点创建 /docker/redis/redis-stack-1m2r3s/data/*（见 scripts/prepare.sh）
 # 2) printf '%s' "${REDIS_PASSWORD:-changeme}" | docker secret create redis_1m2r3s_password -
-# 3) docker stack deploy -c redis-stack.yml redis-1m2r3s
+# 3) ./scripts/deploy.sh sz   # 或 wh（会先 source env/*.env）
 #
 # 更新配置时递增 REDIS_CONFIG_VERSION / SENTINEL_CONFIG_VERSION（改 sentinel.conf 的 port 后必须 bump，否则 Swarm 仍用旧 config 如 55003）
 #
@@ -160,7 +158,7 @@ x-sentinel-base: &sentinel-base
     SENTINEL_MASTER_NAME: myMaster
     SENTINEL_QUORUM: "2"
     REDIS_MONITOR_MODE: internal
-    MASTER_INTERNAL_IP: 172.29.240.103
+    MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
     MASTER_INTERNAL_PORT: "55502"
     REDIS_MASTER_PORT: "55502"
     SENTINEL_LISTEN_PORT: "55503"
@@ -197,7 +195,7 @@ services:
         --port 55502
         --requirepass "$$PW"
         --masterauth "$$PW"
-        --replica-announce-ip 172.29.240.103
+        --replica-announce-ip ${NODE1_INTERNAL_IP}
         --replica-announce-port 55502
     ports:
       - target: 55502
@@ -238,7 +236,7 @@ services:
         --requirepass "$$PW"
         --masterauth "$$PW"
         --replicaof redis-master 55502
-        --replica-announce-ip 172.29.240.104
+        --replica-announce-ip ${NODE2_INTERNAL_IP}
         --replica-announce-port 55512
     ports:
       - target: 55512
@@ -279,7 +277,7 @@ services:
         --requirepass "$$PW"
         --masterauth "$$PW"
         --replicaof redis-master 55502
-        --replica-announce-ip 172.29.240.105
+        --replica-announce-ip ${NODE3_INTERNAL_IP}
         --replica-announce-port 55513
     ports:
       - target: 55513
@@ -308,10 +306,10 @@ services:
     environment:
       SENTINEL_MASTER_NAME: myMaster
       SENTINEL_QUORUM: "2"
-      SENTINEL_ANNOUNCE_IP: 172.29.240.103
+      SENTINEL_ANNOUNCE_IP: ${NODE1_INTERNAL_IP}
       SENTINEL_ANNOUNCE_PORT: "55503"
       REDIS_MONITOR_MODE: internal
-      MASTER_INTERNAL_IP: 172.29.240.103
+      MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
       MASTER_INTERNAL_PORT: "55502"
       SENTINEL_LISTEN_PORT: "55503"
     ports:
@@ -342,10 +340,10 @@ services:
     environment:
       SENTINEL_MASTER_NAME: myMaster
       SENTINEL_QUORUM: "2"
-      SENTINEL_ANNOUNCE_IP: 172.29.240.104
+      SENTINEL_ANNOUNCE_IP: ${NODE2_INTERNAL_IP}
       SENTINEL_ANNOUNCE_PORT: "55503"
       REDIS_MONITOR_MODE: internal
-      MASTER_INTERNAL_IP: 172.29.240.103
+      MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
       MASTER_INTERNAL_PORT: "55502"
 
   redis-sentinel-3:
@@ -354,8 +352,8 @@ services:
     environment:
       SENTINEL_MASTER_NAME: myMaster
       SENTINEL_QUORUM: "2"
-      SENTINEL_ANNOUNCE_IP: 172.29.240.105
+      SENTINEL_ANNOUNCE_IP: ${NODE3_INTERNAL_IP}
       SENTINEL_ANNOUNCE_PORT: "55503"
       REDIS_MONITOR_MODE: internal
-      MASTER_INTERNAL_IP: 172.29.240.103
+      MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
       MASTER_INTERNAL_PORT: "55502"

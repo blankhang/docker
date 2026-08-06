@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+REGION="${1:-${REGION:-sz}}"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ENV_FILE="${ROOT}/env/${REGION}.env"
+if [[ -f "${ENV_FILE}" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "${ENV_FILE}"
+  set +a
+fi
+
 if [ -n "${REDIS_PASSWORD_FILE:-}" ] && [ -r "${REDIS_PASSWORD_FILE}" ]; then
   IFS= read -r REDIS_PASSWORD < "${REDIS_PASSWORD_FILE}" || true
 fi
@@ -13,11 +23,15 @@ fi
 REDIS_PASSWORD="${REDIS_PASSWORD//$'\r'/}"
 while [[ "$REDIS_PASSWORD" == *$'\n' ]]; do REDIS_PASSWORD="${REDIS_PASSWORD%$'\n'}"; done
 
+MASTER_INTERNAL_IP="${MASTER_INTERNAL_IP:-172.29.240.103}"
+
 # Swarm stack 名（与 redis-stack.yml 部署时一致，非宿主机目录名）
-STACK_NAME="${STACK_NAME:-redis-1m2r3s}"
+STACK_NAME="${STACK_NAME:-redis-stack-1m2r3s}"
 STACK_NET="${STACK_NET:-${STACK_NAME}_redis-repl-net}"
 MASTER_NAME="${SENTINEL_MASTER_NAME:-myMaster}"
 SENTINEL_HOST="${SENTINEL_HOST:-redis-sentinel-1}"
+
+echo "=== region=${REGION} expected master internal=${MASTER_INTERNAL_IP}:55502 ==="
 
 echo "=== 主节点 PING ==="
 docker run --rm --network "${STACK_NET}" redis:8.8.0-alpine \
@@ -40,13 +54,17 @@ docker run --rm --network "${STACK_NET}" redis:8.8.0-alpine \
   redis-cli -h redis-replica-2 -p 55513 -a "${REDIS_PASSWORD}" --no-auth-warning ROLE
 
 echo ""
-echo "=== Sentinel：当前 master 地址（internal 模式应为 172.29.240.103 55502）==="
+echo "=== Sentinel：当前 master 地址（internal 模式应为 ${MASTER_INTERNAL_IP} 55502）==="
 MASTER_ADDR=$(docker run --rm --network "${STACK_NET}" redis:8.8.0-alpine \
   redis-cli -h "${SENTINEL_HOST}" -p 55503 -a "${REDIS_PASSWORD}" --no-auth-warning \
   sentinel get-master-addr-by-name "${MASTER_NAME}")
 echo "${MASTER_ADDR}"
 if echo "${MASTER_ADDR}" | grep -qE '^10\.0\.'; then
   echo "警告：get-master-addr 为 overlay 10.0.x.x，请检查 REDIS_MONITOR_MODE" >&2
+  exit 1
+fi
+if ! echo "${MASTER_ADDR}" | grep -q "${MASTER_INTERNAL_IP%.*}"; then
+  echo "警告：get-master-addr 未包含本区域 master 内网段（${MASTER_INTERNAL_IP}），可能仍指向其他机房 IP" >&2
   exit 1
 fi
 

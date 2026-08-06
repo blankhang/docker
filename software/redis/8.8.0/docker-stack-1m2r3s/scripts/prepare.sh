@@ -19,4 +19,5 @@ echo "  printf '%s' "${REDIS_PASSWORD:-changeme}" | docker secret create redis_1
 echo ""
 echo "部署（在 ${DEPLOY_ROOT} 下，或本仓库 docker-stack-1m2r3s 目录）："
 echo "  cd ${DEPLOY_ROOT}"
-echo "  docker stack deploy -c redis-stack.yml redis-1m2r3s"
+echo "  ./scripts/deploy.sh sz   # 深圳"
+echo "  ./scripts/deploy.sh wh   # 武汉"

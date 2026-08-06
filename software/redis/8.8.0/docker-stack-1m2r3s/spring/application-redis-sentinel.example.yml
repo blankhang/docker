@@ -1,4 +1,5 @@
 # Spring Boot 4 + Jedis — prod-sz（VPC 内 Sentinel）
+# 武汉见 application-redis-sentinel.wh.example.yml
 # GET-MASTER-ADDR-BY-NAME → 172.29.240.x:55502/55512/55513（REDIS_MONITOR_MODE=internal；55002 为旧 compose）
 
 spring:
