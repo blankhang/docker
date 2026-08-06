@@ -14,7 +14,7 @@ env:
   IMAGE_ROOT: software
   IMAGE: elasticsearch # 镜像
   IMAGE_NAME: blankhang/elasticsearch #这是您的镜像名
-  IMAGE_VERSION: "9.4.2" # 当前发布版本
+  IMAGE_VERSION: "9.4.4" # 当前发布版本（全插件：ik/pinyin/stconvert）
 
 jobs:
 
