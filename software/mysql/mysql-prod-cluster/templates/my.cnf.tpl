@@ -64,6 +64,9 @@ enforce_gtid_consistency=ON
 
 relay_log_recovery=ON
 
+# binlog 保留 3 天（259200 秒），过期自动清理
+binlog_expire_logs_seconds=259200
+
 # 建议显式指定 relay log，避免 hostname 变更导致复制异常
 relay-log=sz-N-relay-bin
 

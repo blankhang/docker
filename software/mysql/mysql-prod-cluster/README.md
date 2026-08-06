@@ -10,6 +10,7 @@
 | Router RW / RO | 宿主机 `55546`→6446 / `55547`→6447 |
 | 镜像 | `mysql:8.4`、`container-registry.oracle.com/mysql/community-router:8.4` |
 | 模式 | `group_replication_single_primary_mode=ON`，通信栈 `MYSQL` |
+| Router 健康检查 | 容器内探测 `6446`+`6447`（`/dev/tcp`），Portainer 显示 `healthy` |
 
 ## 1. 当前拓扑（已扩容 = 5 节点，2026-08-06）
 
@@ -169,6 +170,9 @@ docker exec mysql8-prod-cluster mysql -uroot -p -P55511 -e \
 cd /docker/mysql/mysql-prod-cluster && docker compose restart mysql
 cd /docker/mysql/mysql-prod-cluster && docker compose restart mysql-router
 ```
+
+- `max_connections=1000`：现网峰值约 277，一般不必提到 2000（徒增每连接内存）。
+- `binlog_expire_logs_seconds=259200`（**3 天**）：五节点已统一；过期由 mysqld 自动清理，也可 `PURGE BINARY LOGS BEFORE NOW() - INTERVAL 3 DAY`。
 
 ## 6. 端口一览
 

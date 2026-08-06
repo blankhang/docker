@@ -54,5 +54,13 @@ services:
       - "55546:6446"
       - "55547:6447"
 
+    healthcheck:
+      # 探测 Router 读写/只读端口是否在听（镜像内无 mysqladmin）
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/6446 && exec 4<>/dev/tcp/127.0.0.1/6447"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
     depends_on:
       - mysql
