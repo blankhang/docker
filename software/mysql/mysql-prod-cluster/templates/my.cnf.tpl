@@ -41,10 +41,10 @@ table_open_cache=4096
 table_definition_cache=4096
 
 # ========================
-# InnoDB
+# InnoDB（SECONDARY 模板 2G；PRIMARY 现网为 4G/4 instances）
 # ========================
-innodb_buffer_pool_size=4G
-innodb_buffer_pool_instances=4
+innodb_buffer_pool_size=2G
+innodb_buffer_pool_instances=2
 
 innodb_redo_log_capacity=2G
 
@@ -67,8 +67,8 @@ relay_log_recovery=ON
 # 建议显式指定 relay log，避免 hostname 变更导致复制异常
 relay-log=sz-N-relay-bin
 
-# Group Replication 大事务限制（默认约 143MB）
-group_replication_transaction_size_limit=1073741824
+# 新实例首次启动需 loose-（未装 GR 插件时否则 Abort）
+loose-group_replication_transaction_size_limit=1073741824
 
 # ========================
 # 日志

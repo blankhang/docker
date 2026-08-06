@@ -1,5 +1,7 @@
 # docker mysql 8
 
+> 生产 **InnoDB Cluster（5 节点）** 见 [mysql-prod-cluster/README.md](mysql-prod-cluster/README.md)。下文为单机 compose 示例。
+
 ### 所有文件将会创建到 /docker/mysql 目录中
 
 ```shell script

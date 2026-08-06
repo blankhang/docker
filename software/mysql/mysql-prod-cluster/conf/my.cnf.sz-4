@@ -34,8 +34,8 @@ max_allowed_packet=256M
 table_open_cache=4096
 table_definition_cache=4096
 
-innodb_buffer_pool_size=4G
-innodb_buffer_pool_instances=4
+innodb_buffer_pool_size=2G
+innodb_buffer_pool_instances=2
 
 innodb_redo_log_capacity=2G
 
@@ -54,7 +54,8 @@ relay_log_recovery=ON
 
 relay-log=sz-4-relay-bin
 
-group_replication_transaction_size_limit=1073741824
+# 新实例首次启动需 loose-，否则未装 GR 插件时会 Abort
+loose-group_replication_transaction_size_limit=1073741824
 
 log-error=/var/log/mysql/mysql.log
 
