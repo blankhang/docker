@@ -228,7 +228,16 @@ sudo chown -R 1000:1000 /docker/es/es-prod-stack/data-elasticsearch-node3 \
 | `ELASTIC_CERT_CONFIG_VERSION` | 改证书文件后递增，触发新 Swarm config |
 | `ELASTIC_PASSWORD` | ES `elastic` 用户密码 |
 | `KIBANA_USERNAME` / `KIBANA_PASSWORD` | Kibana 连接 ES（通常为 `kibana_system`） |
-| `XPACK_*_ENCRYPTIONKEY` | Kibana 加密密钥（变更会导致已加密对象不可用） |
+| `XPACK_*_ENCRYPTIONKEY` | Kibana 加密密钥，**须自行生成**，勿用仓库占位符或公开示例 |
+
+生成（**两项各执行一次**，写入 `docker-stack/.env`；生产真实值勿提交公开仓库）：
+
+```bash
+openssl rand -base64 32   # → XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY
+openssl rand -base64 32   # → XPACK_SECURITY_ENCRYPTIONKEY
+```
+
+密钥启用后勿随意更换，否则已加密的 Kibana saved objects 将无法解密。
 
 ### 5. 部署
 

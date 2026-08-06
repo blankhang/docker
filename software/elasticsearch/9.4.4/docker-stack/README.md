@@ -2,6 +2,11 @@
 
 镜像预装 **analysis-ik / analysis-pinyin / analysis-stconvert**。完整说明（插件用法、CA/证书、扩容）见上级 [`../README.md`](../README.md)。
 
+
+## `.env` 密钥
+
+Kibana 的 `XPACK_*_ENCRYPTIONKEY` **必须自行生成**（`openssl rand -base64 32`，两项各一次），替换 `.env` 中占位符。详见上级 [`../README.md`](../README.md)。
+
 ## 证书（deploy 前）
 
 ```bash

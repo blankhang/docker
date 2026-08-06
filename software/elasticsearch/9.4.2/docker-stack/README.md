@@ -2,6 +2,11 @@
 
 完整说明（含 **CA / 证书生成**、扩容、排错）见上级 [`../README.md`](../README.md)。
 
+
+## `.env` 密钥
+
+Kibana 的 `XPACK_*_ENCRYPTIONKEY` **必须自行生成**（`openssl rand -base64 32`，两项各一次），替换 `.env` 中占位符。详见上级 [`../README.md`](../README.md)。
+
 ## 证书（deploy 前）
 
 ```bash
