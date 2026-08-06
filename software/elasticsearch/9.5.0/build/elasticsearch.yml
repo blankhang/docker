@@ -1,0 +1,3 @@
+#Default ElasticSearch configuration for docker target
+cluster.name: "docker-cluster"
+network.host: 0.0.0.0

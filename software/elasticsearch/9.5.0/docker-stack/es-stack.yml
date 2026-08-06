@@ -1,0 +1,197 @@
+# Docker Swarm Stack：3 节点 ES + Kibana
+# 更新证书 conf 后递增 .env 中 ELASTIC_CERT_CONFIG_VERSION 再 deploy
+#（Swarm config 不可变，改 name 才会挂载新内容）
+# 部署：docker stack deploy 无 --env-file，须先 source .env（见 docker-stack/README.md）
+
+services:
+  es-node1:
+    image: blankhang/elasticsearch:${ELK_VERSION}
+    restart: always
+    ports:
+      - "19201:9200"
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+      nproc:
+        soft: 4096
+        hard: 4096
+      memlock:
+        soft: -1
+        hard: -1
+    deploy:
+      placement:
+        constraints: [node.hostname == xhc-wh-1]
+      resources:
+        limits:
+          memory: 6G
+      update_config:
+        parallelism: 1
+        delay: 90s
+        order: stop-first
+        failure_action: pause
+    environment:
+      - reindex.remote.whitelist=47.253.111.89:19201,120.24.64.42:19201
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - path.repo=/usr/share/elasticsearch/backup
+      - node.name=es-node1
+      - cluster.name=es-cluster
+      - network.publish_host=es-node1
+      - discovery.seed_hosts=es-node2,es-node3
+      # 仅在初始化部署时需要，一旦部署成功则应该注释掉下面这行重新部署应用
+      #- cluster.initial_master_nodes=es-node1,es-node2,es-node3
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.keystore.path=/usr/share/elasticsearch/config/certs/elastic-certificates.p12
+      - xpack.security.transport.ssl.truststore.path=/usr/share/elasticsearch/config/certs/elastic-certificates.p12
+    configs:
+      - source: elastic-certificates_p12
+        target: /usr/share/elasticsearch/config/certs/elastic-certificates.p12
+    volumes:
+      - /docker/es/es-prod-stack/data-elasticsearch-node1:/usr/share/elasticsearch/data
+      - /docker/es/es-prod-stack/es-backup:/usr/share/elasticsearch/backup
+    networks:
+      - es-net
+
+  es-node2:
+    image: blankhang/elasticsearch:${ELK_VERSION}
+    restart: always
+    ports:
+      - "19202:9200"
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+      nproc:
+        soft: 4096
+        hard: 4096
+      memlock:
+        soft: -1
+        hard: -1
+    deploy:
+      placement:
+        constraints: [node.hostname == xhc-wh-2]
+      resources:
+        limits:
+          memory: 6G
+      update_config:
+        parallelism: 1
+        delay: 90s
+        order: stop-first
+        failure_action: pause
+    environment:
+      - reindex.remote.whitelist=47.253.111.89:19201,120.24.64.42:19201
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - path.repo=/usr/share/elasticsearch/backup
+      - node.name=es-node2
+      - cluster.name=es-cluster
+      - network.publish_host=es-node2
+      - discovery.seed_hosts=es-node1,es-node3
+      - cluster.initial_master_nodes=es-node1,es-node2,es-node3
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.keystore.path=/usr/share/elasticsearch/config/certs/elastic-certificates.p12
+      - xpack.security.transport.ssl.truststore.path=/usr/share/elasticsearch/config/certs/elastic-certificates.p12
+    configs:
+      - source: elastic-certificates_p12
+        target: /usr/share/elasticsearch/config/certs/elastic-certificates.p12
+    volumes:
+      - /docker/es/es-prod-stack/data-elasticsearch-node2:/usr/share/elasticsearch/data
+      - /docker/es/es-prod-stack/es-backup:/usr/share/elasticsearch/backup
+    networks:
+      - es-net
+
+  es-node3:
+    image: blankhang/elasticsearch:${ELK_VERSION}
+    restart: always
+    ports:
+      - "19203:9200"
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+      nproc:
+        soft: 4096
+        hard: 4096
+      memlock:
+        soft: -1
+        hard: -1
+    deploy:
+      placement:
+        constraints: [node.hostname == xhc-wh-3]
+      resources:
+        limits:
+          memory: 6G
+      update_config:
+        parallelism: 1
+        delay: 90s
+        order: stop-first
+        failure_action: pause
+    environment:
+      - reindex.remote.whitelist=47.253.111.89:19201,120.24.64.42:19201
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - path.repo=/usr/share/elasticsearch/backup
+      - node.name=es-node3
+      - cluster.name=es-cluster
+      - network.publish_host=es-node3
+      - discovery.seed_hosts=es-node1,es-node2
+      - cluster.initial_master_nodes=es-node1,es-node2,es-node3
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.keystore.path=/usr/share/elasticsearch/config/certs/elastic-certificates.p12
+      - xpack.security.transport.ssl.truststore.path=/usr/share/elasticsearch/config/certs/elastic-certificates.p12
+    configs:
+      - source: elastic-certificates_p12
+        target: /usr/share/elasticsearch/config/certs/elastic-certificates.p12
+
+    volumes:
+      - /docker/es/es-prod-stack/data-elasticsearch-node3:/usr/share/elasticsearch/data
+      - /docker/es/es-prod-stack/es-backup:/usr/share/elasticsearch/backup
+    networks:
+      - es-net
+
+  kibana:
+    image: kibana:${ELK_VERSION}
+    restart: always
+    ports:
+      - "15601:5601"
+    deploy:
+      placement:
+        constraints: [node.hostname == xhc-wh-1]
+      resources:
+        limits:
+          memory: 1G
+    environment:
+      - SERVERNAME=kibana
+      - SERVER_HOST=0.0.0.0
+      - ELASTICSEARCH_HOSTS=["http://es-node1:9200","http://es-node2:9200","http://es-node3:9200"]
+      - ELASTICSEARCH_USERNAME=${KIBANA_USERNAME}
+      - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY}
+      - XPACK_SECURITY_ENCRYPTIONKEY=${XPACK_SECURITY_ENCRYPTIONKEY}
+      - I18N_LOCALE=zh-CN
+      - DATEFORMAT_TZ=Asia/Shanghai
+      # 精简项用 env（优先级高于 kibana.yml）；勿挂载旧 Swarm config，否则会残留 timelion 等已删除的键
+      - TELEMETRY_OPTIN=false
+      - TELEMETRY_ALLOWCHANGINGOPTINSTATUS=false
+      - MONITORING_UI_ENABLED=false
+      - MONITORING_KIBANA_COLLECTION_ENABLED=false
+      - XPACK_APM_UI_ENABLED=false
+      - XPACK_FLEET_AGENTS_ENABLED=false
+      - MAP_INCLUDEELASTICMAPSSERVICE=false
+    volumes:
+      - /docker/es/es-prod-stack/data-kibana:/usr/share/kibana/data
+    networks:
+      - es-net
+
+networks:
+  es-net:
+    driver: overlay
+
+configs:
+  elastic-certificates_p12:
+    name: elastic_cert_p12_${ELASTIC_CERT_CONFIG_VERSION:-v1}
+    file: conf/elastic-certificates_p12
