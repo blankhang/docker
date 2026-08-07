@@ -24,14 +24,17 @@ REDIS_PASSWORD="${REDIS_PASSWORD//$'\r'/}"
 while [[ "$REDIS_PASSWORD" == *$'\n' ]]; do REDIS_PASSWORD="${REDIS_PASSWORD%$'\n'}"; done
 
 MASTER_INTERNAL_IP="${MASTER_INTERNAL_IP:-172.29.240.103}"
-
-# Swarm stack 名（与 redis-stack.yml 部署时一致，非宿主机目录名）
 STACK_NAME="${STACK_NAME:-redis-stack-1m2r3s}"
 STACK_NET="${STACK_NET:-${STACK_NAME}_redis-repl-net}"
 MASTER_NAME="${SENTINEL_MASTER_NAME:-myMaster}"
 SENTINEL_HOST="${SENTINEL_HOST:-redis-sentinel-1}"
 
-echo "=== region=${REGION} expected master internal=${MASTER_INTERNAL_IP}:55502 ==="
+EXPECTED_SLAVES=2
+if [[ "${REGION}" == "sz" ]] || [[ -n "${NODE4_HOSTNAME:-}" ]]; then
+  EXPECTED_SLAVES=4
+fi
+
+echo "=== region=${REGION} expected master=${MASTER_INTERNAL_IP}:55502 slaves=${EXPECTED_SLAVES} ==="
 
 echo "=== 主节点 PING ==="
 docker run --rm --network "${STACK_NET}" redis:8.8.0-alpine \
@@ -39,19 +42,28 @@ docker run --rm --network "${STACK_NET}" redis:8.8.0-alpine \
 
 echo ""
 echo "=== 主节点复制状态 ==="
-docker run --rm --network "${STACK_NET}" redis:8.8.0-alpine \
-  redis-cli -h redis-master -p 55502 -a "${REDIS_PASSWORD}" --no-auth-warning INFO replication \
-  | grep -E '^(role|connected_slaves|slave[0-9])'
+REPL=$(docker run --rm --network "${STACK_NET}" redis:8.8.0-alpine \
+  redis-cli -h redis-master -p 55502 -a "${REDIS_PASSWORD}" --no-auth-warning INFO replication)
+echo "${REPL}" | grep -E '^(role|connected_slaves|slave[0-9])'
+SLAVES=$(echo "${REPL}" | awk -F: '/^connected_slaves:/{print $2}' | tr -d '\r')
+if [[ "${SLAVES}" != "${EXPECTED_SLAVES}" ]]; then
+  echo "警告：connected_slaves=${SLAVES}，期望 ${EXPECTED_SLAVES}" >&2
+fi
 
-echo ""
-echo "=== 从节点 1 ROLE ==="
-docker run --rm --network "${STACK_NET}" redis:8.8.0-alpine \
-  redis-cli -h redis-replica-1 -p 55512 -a "${REDIS_PASSWORD}" --no-auth-warning ROLE
+check_replica() {
+  local name=$1 port=$2
+  echo ""
+  echo "=== ${name} ROLE (port ${port}) ==="
+  docker run --rm --network "${STACK_NET}" redis:8.8.0-alpine \
+    redis-cli -h "${name}" -p "${port}" -a "${REDIS_PASSWORD}" --no-auth-warning ROLE
+}
 
-echo ""
-echo "=== 从节点 2 ROLE ==="
-docker run --rm --network "${STACK_NET}" redis:8.8.0-alpine \
-  redis-cli -h redis-replica-2 -p 55513 -a "${REDIS_PASSWORD}" --no-auth-warning ROLE
+check_replica redis-replica-1 55512
+check_replica redis-replica-2 55513
+if [[ "${EXPECTED_SLAVES}" -ge 4 ]]; then
+  check_replica redis-replica-3 55514
+  check_replica redis-replica-4 55515
+fi
 
 echo ""
 echo "=== Sentinel：当前 master 地址（internal 模式应为 ${MASTER_INTERNAL_IP} 55502）==="

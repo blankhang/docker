@@ -1,0 +1,373 @@
+# Redis 主从 + Sentinel — 武汉 3 节点完整定义（1 主 2 从 + 3 Sentinel）
+# 部署：./scripts/deploy.sh wh  →  docker stack deploy -c redis-stack-wh.yml
+# 重装：同步本目录到 wh-1..3 → prepare.sh → secret → ./scripts/deploy.sh wh
+#
+# 端口：master 55502；从库 55512/55513；Sentinel 55503（仅 sentinel-1 发布）
+# 55002 留给旧 compose。hostname 硬约束与 env/wh.env 的 NODE1–3 对齐。
+#
+# 更新 conf/ 后须递增 env/wh.env 中 REDIS_CONFIG_VERSION / SENTINEL_CONFIG_VERSION
+#
+networks:
+  redis-repl-net:
+    driver: overlay
+    attachable: true
+
+secrets:
+  redis_password:
+    external: true
+    name: redis_1m2r3s_password
+
+configs:
+  redis_repl_conf:
+    name: redis_repl_conf_${REDIS_CONFIG_VERSION:-v1}
+    file: ./conf/redis.conf
+  redis_sentinel_conf:
+    name: redis_sentinel_conf_${SENTINEL_CONFIG_VERSION:-v1}
+    file: ./conf/sentinel.conf
+
+x-redis-base: &redis-base
+  image: redis:8.8.0-alpine
+  stop_grace_period: 10s
+  networks:
+    - redis-repl-net
+  secrets:
+    - redis_password
+  configs:
+    - source: redis_repl_conf
+      target: /usr/local/etc/redis/redis.conf
+  deploy:
+    restart_policy:
+      condition: any
+      delay: 5s
+      max_attempts: 0
+    resources:
+      limits:
+        cpus: "2"
+        memory: 2G
+      reservations:
+        memory: 256M
+
+x-sentinel-base: &sentinel-base
+  image: redis:8.8.0-alpine
+  stop_grace_period: 10s
+  networks:
+    - redis-repl-net
+  secrets:
+    - redis_password
+  configs:
+    - source: redis_sentinel_conf
+      target: /usr/local/etc/redis/sentinel-base.conf
+  command:
+    - sh
+    - -c
+    - |
+      set -e
+      echo "sentinel-bootstrap v7 (容器内端口=发布端口；overlay master:55502)"
+      REDIS_MASTER_PORT="$${REDIS_MASTER_PORT:-55502}"
+      PW=$$(cat /run/secrets/redis_password)
+      MASTER_NAME="$${SENTINEL_MASTER_NAME:-myMaster}"
+      QUORUM="$${SENTINEL_QUORUM:-2}"
+      CLI_TO=3
+      MONITOR_MODE="$${REDIS_MONITOR_MODE:-internal}"
+      master_ping() {
+        timeout $$CLI_TO redis-cli -h "$$1" -p "$$2" -a "$$PW" --no-auth-warning ping 2>/dev/null | grep -q PONG
+      }
+      resolve_master_ip() {
+        getent ahostsv4 "$$1" 2>/dev/null | awk '{print $$1; exit}'
+      }
+      echo "等待 redis-master 就绪（overlay；下列 10.0.x.x 为 Swarm VIP，正常）..."
+      getent ahostsv4 redis-master 2>/dev/null | awk '{print "  VIP",$$1}' | head -3 || true
+      MASTER_HOST=""
+      MASTER_IP=""
+      n=0
+      while [ $$n -lt 90 ]; do
+        for H in redis-master tasks.redis-master; do
+          IP=$$(resolve_master_ip "$$H")
+          if [ -n "$$IP" ] && master_ping "$$IP" "$$REDIS_MASTER_PORT"; then
+            MASTER_HOST="$$H"
+            MASTER_IP="$$IP"
+            break
+          fi
+        done
+        [ -n "$$MASTER_IP" ] && break
+        n=$$((n + 1))
+        if [ $$((n % 5)) -eq 0 ]; then
+          echo "重试 #$$n: $$(timeout $$CLI_TO redis-cli -h redis-master -p "$$REDIS_MASTER_PORT" -a "$$PW" --no-auth-warning ping 2>&1 | tr '\n' ' ')"
+        fi
+        sleep 2
+      done
+      if [ -z "$$MASTER_IP" ]; then
+        echo "超时：Sentinel 无法 PING redis-master。请在 sentinel 容器内执行: getent ahostsv4 redis-master; redis-cli -h <IP> -a ... ping" >&2
+        exit 1
+      fi
+      echo "redis-master 已就绪 ($$MASTER_HOST -> $$MASTER_IP:$$REDIS_MASTER_PORT)"
+      if [ -z "$${MASTER_INTERNAL_IP:-}" ]; then
+        echo "错误：请设置 MASTER_INTERNAL_IP" >&2
+        exit 1
+      fi
+      if [ "$$MONITOR_MODE" = client ]; then
+        if [ -z "$${MASTER_CLIENT_IP:-}" ] || [ -z "$${MASTER_CLIENT_PORT:-}" ]; then
+          echo "错误：client 模式需 MASTER_CLIENT_IP / MASTER_CLIENT_PORT" >&2
+          exit 1
+        fi
+        MONITOR_IP="$$MASTER_CLIENT_IP"
+        MONITOR_PORT="$$MASTER_CLIENT_PORT"
+        echo "REDIS_MONITOR_MODE=client → monitor 公网 $${MONITOR_IP}:$${MONITOR_PORT}"
+      else
+        MONITOR_IP="$$MASTER_INTERNAL_IP"
+        MONITOR_PORT="$${MASTER_INTERNAL_PORT:-55502}"
+        echo "REDIS_MONITOR_MODE=internal → monitor 内网 $${MONITOR_IP}:$${MONITOR_PORT}"
+      fi
+      if master_ping "$$MONITOR_IP" "$$MONITOR_PORT"; then
+        echo "monitor 目标探测：可达"
+      else
+        echo "警告：Sentinel 容器内暂无法 PING $${MONITOR_IP}:$${MONITOR_PORT}，仍启动（可能 +sdown）" >&2
+      fi
+      echo "sentinel monitor $${MASTER_NAME} $${MONITOR_IP} $${MONITOR_PORT} (quorum=$${QUORUM})"
+      CONF=/tmp/sentinel.conf
+      cp /usr/local/etc/redis/sentinel-base.conf "$$CONF"
+      printf 'requirepass %s\n' "$$PW" >> "$$CONF"
+      if [ -n "$${SENTINEL_ANNOUNCE_IP:-}" ]; then
+        printf 'sentinel announce-ip %s\n' "$$SENTINEL_ANNOUNCE_IP" >> "$$CONF"
+        echo "sentinel announce-ip $${SENTINEL_ANNOUNCE_IP}（官方 Docker/NAT 互发现）"
+      fi
+      if [ -n "$${SENTINEL_ANNOUNCE_PORT:-}" ]; then
+        printf 'sentinel announce-port %s\n' "$$SENTINEL_ANNOUNCE_PORT" >> "$$CONF"
+        echo "sentinel announce-port $${SENTINEL_ANNOUNCE_PORT}"
+      fi
+      printf 'sentinel auth-pass %s %s\n' "$$MASTER_NAME" "$$PW" >> "$$CONF"
+      printf 'sentinel monitor %s %s %s %s\n' "$$MASTER_NAME" "$$MONITOR_IP" "$$MONITOR_PORT" "$$QUORUM" >> "$$CONF"
+      SENTINEL_LISTEN_PORT="$${SENTINEL_LISTEN_PORT:-55503}"
+      sed -i "s/^port .*/port $${SENTINEL_LISTEN_PORT}/" "$$CONF"
+      exec redis-server "$$CONF" --sentinel --port "$$SENTINEL_LISTEN_PORT"
+  environment:
+    SENTINEL_MASTER_NAME: myMaster
+    SENTINEL_QUORUM: "2"
+    REDIS_MONITOR_MODE: internal
+    MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
+    MASTER_INTERNAL_PORT: "55502"
+    REDIS_MASTER_PORT: "55502"
+    SENTINEL_LISTEN_PORT: "55503"
+  deploy:
+    replicas: 1
+    restart_policy:
+      condition: any
+      delay: 5s
+      max_attempts: 0
+    resources:
+      limits:
+        cpus: "0.5"
+        memory: 256M
+      reservations:
+        memory: 64M
+
+services:
+  redis-master:
+    <<: *redis-base
+    hostname: redis-master
+    volumes:
+      - type: bind
+        source: /docker/redis/redis-stack-1m2r3s/data/master
+        target: /data
+    command:
+      - sh
+      - -c
+      - >
+        PW=$$(cat /run/secrets/redis_password);
+        exec redis-server /usr/local/etc/redis/redis.conf
+        --port 55502
+        --requirepass "$$PW"
+        --masterauth "$$PW"
+        --replica-announce-ip ${NODE1_INTERNAL_IP}
+        --replica-announce-port 55502
+    ports:
+      - target: 55502
+        published: 55502
+        protocol: tcp
+        mode: ingress
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          # 钉死 wh-1，避免 failover 后任务挤在单机导致 announce IP 错位
+          - node.hostname == ${NODE1_HOSTNAME:-xhc-wh-1}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          memory: 256M
+
+  redis-replica-1:
+    <<: *redis-base
+    hostname: redis-replica-1
+    volumes:
+      - type: bind
+        source: /docker/redis/redis-stack-1m2r3s/data/replica-1
+        target: /data
+    command:
+      - sh
+      - -c
+      - >
+        PW=$$(cat /run/secrets/redis_password);
+        until redis-cli -h redis-master -p 55502 -a "$$PW" --no-auth-warning ping 2>/dev/null | grep -q PONG; do sleep 2; done;
+        exec redis-server /usr/local/etc/redis/redis.conf
+        --port 55512
+        --requirepass "$$PW"
+        --masterauth "$$PW"
+        --replicaof redis-master 55502
+        --replica-announce-ip ${NODE2_INTERNAL_IP}
+        --replica-announce-port 55512
+    ports:
+      - target: 55512
+        published: 55512
+        protocol: tcp
+        mode: ingress
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          memory: 256M
+      placement:
+        constraints:
+          - node.hostname == ${NODE2_HOSTNAME:-xhc-wh-2}
+
+  redis-replica-2:
+    <<: *redis-base
+    hostname: redis-replica-2
+    volumes:
+      - type: bind
+        source: /docker/redis/redis-stack-1m2r3s/data/replica-2
+        target: /data
+    command:
+      - sh
+      - -c
+      - >
+        PW=$$(cat /run/secrets/redis_password);
+        until redis-cli -h redis-master -p 55502 -a "$$PW" --no-auth-warning ping 2>/dev/null | grep -q PONG; do sleep 2; done;
+        exec redis-server /usr/local/etc/redis/redis.conf
+        --port 55513
+        --requirepass "$$PW"
+        --masterauth "$$PW"
+        --replicaof redis-master 55502
+        --replica-announce-ip ${NODE3_INTERNAL_IP}
+        --replica-announce-port 55513
+    ports:
+      - target: 55513
+        published: 55513
+        protocol: tcp
+        mode: ingress
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          memory: 256M
+      placement:
+        constraints:
+          - node.hostname == ${NODE3_HOSTNAME:-xhc-wh-3}
+
+  redis-sentinel-1:
+    <<: *sentinel-base
+    hostname: redis-sentinel-1
+    environment:
+      SENTINEL_MASTER_NAME: myMaster
+      SENTINEL_QUORUM: "2"
+      SENTINEL_ANNOUNCE_IP: ${NODE1_INTERNAL_IP}
+      SENTINEL_ANNOUNCE_PORT: "55503"
+      REDIS_MONITOR_MODE: internal
+      MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
+      MASTER_INTERNAL_PORT: "55502"
+      SENTINEL_LISTEN_PORT: "55503"
+    ports:
+      - target: 55503
+        published: 55503
+        protocol: tcp
+        mode: ingress
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE1_HOSTNAME:-xhc-wh-1}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 64M
+
+  # Swarm ingress：全 stack 仅一个服务可发布 55503；三台内网 IP:55503 经 ingress 路由到 sentinel-1
+  redis-sentinel-2:
+    <<: *sentinel-base
+    hostname: redis-sentinel-2
+    environment:
+      SENTINEL_MASTER_NAME: myMaster
+      SENTINEL_QUORUM: "2"
+      SENTINEL_ANNOUNCE_IP: ${NODE2_INTERNAL_IP}
+      SENTINEL_ANNOUNCE_PORT: "55503"
+      REDIS_MONITOR_MODE: internal
+      MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
+      MASTER_INTERNAL_PORT: "55502"
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE2_HOSTNAME:-xhc-wh-2}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 64M
+
+  redis-sentinel-3:
+    <<: *sentinel-base
+    hostname: redis-sentinel-3
+    environment:
+      SENTINEL_MASTER_NAME: myMaster
+      SENTINEL_QUORUM: "2"
+      SENTINEL_ANNOUNCE_IP: ${NODE3_INTERNAL_IP}
+      SENTINEL_ANNOUNCE_PORT: "55503"
+      REDIS_MONITOR_MODE: internal
+      MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
+      MASTER_INTERNAL_PORT: "55502"
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE3_HOSTNAME:-xhc-wh-3}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 64M

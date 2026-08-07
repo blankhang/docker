@@ -1,6 +1,10 @@
 # Spring Boot 4 + Jedis — prod-sz（VPC 内 Sentinel）
 # 武汉见 application-redis-sentinel.wh.example.yml
-# GET-MASTER-ADDR-BY-NAME → 172.29.240.x:55502/55512/55513（REDIS_MONITOR_MODE=internal；55002 为旧 compose）
+# GET-MASTER-ADDR-BY-NAME → 172.29.240.x:55502/55512/55513（sz failover 还可能 55514/55515）
+# 注意：
+# - 不要写 host/port（Sentinel 模式由 GET-MASTER-ADDR 决定数据面）
+# - 切勿残留旧 compose 的 55002；本 stack 数据口为 55502/55512–55515，Sentinel 为 55503
+# - sz 扩 5 节点后 Sentinel nodes 仍为下列三台即可（不必为从库加节点）
 
 spring:
   data:

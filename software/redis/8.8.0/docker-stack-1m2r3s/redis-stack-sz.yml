@@ -1,26 +1,12 @@
-# Redis 1 主 2 从 + Sentinel（主从复制，非 Cluster）
-# Docker Swarm Stack
+# Redis 主从 + Sentinel — 深圳 5 节点完整定义（1 主 4 从 + 3 Sentinel）
+# 部署：./scripts/deploy.sh sz  →  docker stack deploy -c redis-stack-sz.yml
+# 重装：同步本目录到 sz-1..5 → prepare.sh → secret → ./scripts/deploy.sh sz
 #
-# 双栈（master 统一 55502；宿主机 55002 留给旧 compose，勿与本 stack 冲突）
-# 节点 IP 由 env/sz.env 或 env/wh.env 注入，部署：./scripts/deploy.sh sz|wh
-# 复制 overlay redis-master:55502；replica-announce master 55502 / replica 55512/55513
-# 内网：master 55502、replica 55512/55513；Sentinel 55503
-# Sentinel：monitor/announce 内网；sentinel-1 发布 55503
+# 端口：master 55502；从库 55512–55515；Sentinel 55503（仅 sentinel-1 发布）
+# 55002 留给旧 compose。hostname 硬约束与 env/sz.env 的 NODE1–5 对齐。
 #
-# 前置：
-# 1) 各节点创建 /docker/redis/redis-stack-1m2r3s/data/*（见 scripts/prepare.sh）
-# 2) printf '%s' "${REDIS_PASSWORD:-changeme}" | docker secret create redis_1m2r3s_password -
-# 3) ./scripts/deploy.sh sz   # 或 wh（会先 source env/*.env）
+# 更新 conf/ 后须递增 env/sz.env 中 REDIS_CONFIG_VERSION / SENTINEL_CONFIG_VERSION
 #
-# 更新配置时递增 REDIS_CONFIG_VERSION / SENTINEL_CONFIG_VERSION（改 sentinel.conf 的 port 后必须 bump，否则 Swarm 仍用旧 config 如 55003）
-#
-# Sentinel 与 Redis 8 官方文档对齐要点（Docker/NAT）：
-# - Redis: replica-announce-ip / replica-announce-port（从库 INFO 与对外地址）
-# - Sentinel: sentinel announce-ip / announce-port（各节点公网，修复 Sentinel 互发现）
-# - sentinel monitor <name> <ip> <port> <quorum>：ip/port 须为 Sentinel 可探测且
-#   SENTINEL GET-MASTER-ADDR-BY-NAME 返回的地址（见官方 Reconfiguring / Docker 章节）
-# - 勿使用 SENTINEL SET ip|port（非官方参数）；运行时改 quorum 等用 SENTINEL SET <name> quorum N
-
 networks:
   redis-repl-net:
     driver: overlay
@@ -51,9 +37,9 @@ x-redis-base: &redis-base
       target: /usr/local/etc/redis/redis.conf
   deploy:
     restart_policy:
-      condition: on-failure
+      condition: any
       delay: 5s
-      max_attempts: 5
+      max_attempts: 0
     resources:
       limits:
         cpus: "2"
@@ -164,13 +150,10 @@ x-sentinel-base: &sentinel-base
     SENTINEL_LISTEN_PORT: "55503"
   deploy:
     replicas: 1
-    placement:
-      preferences:
-        - spread: node.id
     restart_policy:
-      condition: on-failure
+      condition: any
       delay: 5s
-      max_attempts: 5
+      max_attempts: 0
     resources:
       limits:
         cpus: "0.5"
@@ -206,11 +189,12 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == manager
+          # 钉死 sz-1，避免 failover 后任务挤在单机导致 announce IP 错位
+          - node.hostname == ${NODE1_HOSTNAME:-xhc-sz-1}
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 5s
-        max_attempts: 5
+        max_attempts: 0
       resources:
         limits:
           cpus: "2"
@@ -246,9 +230,9 @@ services:
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 5s
-        max_attempts: 5
+        max_attempts: 0
       resources:
         limits:
           cpus: "2"
@@ -256,8 +240,8 @@ services:
         reservations:
           memory: 256M
       placement:
-        preferences:
-          - spread: node.id
+        constraints:
+          - node.hostname == ${NODE2_HOSTNAME:-xhc-sz-2}
 
   redis-replica-2:
     <<: *redis-base
@@ -287,9 +271,9 @@ services:
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 5s
-        max_attempts: 5
+        max_attempts: 0
       resources:
         limits:
           cpus: "2"
@@ -297,8 +281,91 @@ services:
         reservations:
           memory: 256M
       placement:
-        preferences:
-          - spread: node.id
+        constraints:
+          - node.hostname == ${NODE3_HOSTNAME:-xhc-sz-3}
+
+
+  redis-replica-3:
+    <<: *redis-base
+    hostname: redis-replica-3
+    volumes:
+      - type: bind
+        source: /docker/redis/redis-stack-1m2r3s/data/replica-3
+        target: /data
+    command:
+      - sh
+      - -c
+      - >
+        PW=$$(cat /run/secrets/redis_password);
+        until redis-cli -h redis-master -p 55502 -a "$$PW" --no-auth-warning ping 2>/dev/null | grep -q PONG; do sleep 2; done;
+        exec redis-server /usr/local/etc/redis/redis.conf
+        --port 55514
+        --requirepass "$$PW"
+        --masterauth "$$PW"
+        --replicaof redis-master 55502
+        --replica-announce-ip ${NODE4_INTERNAL_IP}
+        --replica-announce-port 55514
+    ports:
+      - target: 55514
+        published: 55514
+        protocol: tcp
+        mode: ingress
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          memory: 256M
+      placement:
+        constraints:
+          - node.hostname == ${NODE4_HOSTNAME:-xhc-sz-4}
+
+  redis-replica-4:
+    <<: *redis-base
+    hostname: redis-replica-4
+    volumes:
+      - type: bind
+        source: /docker/redis/redis-stack-1m2r3s/data/replica-4
+        target: /data
+    command:
+      - sh
+      - -c
+      - >
+        PW=$$(cat /run/secrets/redis_password);
+        until redis-cli -h redis-master -p 55502 -a "$$PW" --no-auth-warning ping 2>/dev/null | grep -q PONG; do sleep 2; done;
+        exec redis-server /usr/local/etc/redis/redis.conf
+        --port 55515
+        --requirepass "$$PW"
+        --masterauth "$$PW"
+        --replicaof redis-master 55502
+        --replica-announce-ip ${NODE5_INTERNAL_IP}
+        --replica-announce-port 55515
+    ports:
+      - target: 55515
+        published: 55515
+        protocol: tcp
+        mode: ingress
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          memory: 256M
+      placement:
+        constraints:
+          - node.hostname == ${NODE5_HOSTNAME:-xhc-sz-5}
 
   redis-sentinel-1:
     <<: *sentinel-base
@@ -321,11 +388,11 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == manager
+          - node.hostname == ${NODE1_HOSTNAME:-xhc-sz-1}
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 5s
-        max_attempts: 5
+        max_attempts: 0
       resources:
         limits:
           cpus: "0.5"
@@ -345,6 +412,21 @@ services:
       REDIS_MONITOR_MODE: internal
       MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
       MASTER_INTERNAL_PORT: "55502"
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE2_HOSTNAME:-xhc-sz-2}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 64M
 
   redis-sentinel-3:
     <<: *sentinel-base
@@ -357,3 +439,18 @@ services:
       REDIS_MONITOR_MODE: internal
       MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
       MASTER_INTERNAL_PORT: "55502"
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE3_HOSTNAME:-xhc-sz-3}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 64M

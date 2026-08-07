@@ -2,9 +2,13 @@
 
 固定基础镜像 `redis:8.8.0-alpine`；自定义镜像见 [build/](build/)。默认示例密码见 [.env.example](.env.example)（`changeme`，生产务必修改）。
 
-## Swarm 1 主 2 从
+## Swarm 主从 + Sentinel
 
-见 [docker-stack-1m2r3s/README.md](docker-stack-1m2r3s/README.md)（1 主 2 从 3 Sentinel，`docker stack deploy`）。
+见 [docker-stack-1m2r3s/README.md](docker-stack-1m2r3s/README.md)：
+
+- **sz**：[redis-stack-sz.yml](docker-stack-1m2r3s/redis-stack-sz.yml) — 1 主 4 从 + 3 Sentinel（`xhc-sz-1..5`）
+- **wh**：[redis-stack-wh.yml](docker-stack-1m2r3s/redis-stack-wh.yml) — 1 主 2 从 + 3 Sentinel（`xhc-wh-1..3`）
+- 部署：`./scripts/deploy.sh sz|wh`
 
 ## Swarm 3 主 3 从 Cluster
 
