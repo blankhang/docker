@@ -1,0 +1,542 @@
+# Redis HA — 深圳 5 节点新集群（并行于 redis-stack-1m2r3s，旧集群不停）
+# 目录：/docker/redis/redis-ha-sz
+# Stack：redis-ha-sz
+# 部署：./scripts/deploy.sh
+#
+# 端口（均为 publish_mode: host，本机可直连）：
+#   Redis  55701..55705  →  sz-1 master / sz-2..5 replica
+#   Sentinel 55711       →  五台各一只，quorum=3（任意挂 2 台仍可 failover）
+#
+# 与旧集群端口隔离：旧 55502/55503/55512-55515；MySQL 55511 不动
+#
+# 前置：prepare.sh → secret redis_ha_sz_password_v3（独立密码）→ ./scripts/deploy.sh
+# 导数据：./scripts/sync-from-legacy.sh（REPLICAOF 旧 master，不停旧服务）
+# 新集群 requirepass 必须与旧不同，否则旧 Sentinel 会干扰
+
+networks:
+  redis-ha-net:
+    driver: overlay
+    attachable: true
+
+secrets:
+  redis_password:
+    external: true
+    name: redis_ha_sz_password_${REDIS_SECRET_VERSION:-v3}
+
+configs:
+  redis_ha_conf:
+    name: redis_ha_conf_${REDIS_CONFIG_VERSION:-v1}
+    file: ./conf/redis.conf
+  redis_ha_sentinel_conf:
+    name: redis_ha_sentinel_conf_${SENTINEL_CONFIG_VERSION:-v1}
+    file: ./conf/sentinel.conf
+
+x-redis-base: &redis-base
+  image: redis:8.8.0-alpine
+  stop_grace_period: 10s
+  networks:
+    - redis-ha-net
+  secrets:
+    - redis_password
+  configs:
+    - source: redis_ha_conf
+      target: /usr/local/etc/redis/redis.conf
+  # REDIS_HEALTH_PORT 由各服务 environment 覆盖（55701..55705）
+  healthcheck:
+    test:
+      - CMD-SHELL
+      - redis-cli -h 127.0.0.1 -p "$$REDIS_HEALTH_PORT" -a "$$(cat /run/secrets/redis_password)" --no-auth-warning ping | grep -q PONG
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 45s
+  deploy:
+    restart_policy:
+      condition: any
+      delay: 5s
+      max_attempts: 0
+    resources:
+      limits:
+        cpus: "2"
+        memory: 2G
+      reservations:
+        memory: 256M
+
+x-sentinel-base: &sentinel-base
+  image: redis:8.8.0-alpine
+  stop_grace_period: 10s
+  networks:
+    - redis-ha-net
+  secrets:
+    - redis_password
+  configs:
+    - source: redis_ha_sentinel_conf
+      target: /usr/local/etc/redis/sentinel-base.conf
+  healthcheck:
+    test:
+      - CMD-SHELL
+      - redis-cli -h 127.0.0.1 -p "$$SENTINEL_LISTEN_PORT" -a "$$(cat /run/secrets/redis_password)" --no-auth-warning ping | grep -q PONG
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 90s
+  command:
+    - sh
+    - -c
+    - |
+      set -e
+      echo "sentinel-bootstrap ha-sz v3 (host:55711；monitor 内网 master:55701；quorum=3)"
+      REDIS_MASTER_PORT="$${REDIS_MASTER_PORT:-55701}"
+      PW=$$(cat /run/secrets/redis_password)
+      MASTER_NAME="$${SENTINEL_MASTER_NAME:-myMasterHa}"
+      QUORUM="$${SENTINEL_QUORUM:-3}"
+      CLI_TO=3
+      master_ping() {
+        timeout $$CLI_TO redis-cli -h "$$1" -p "$$2" -a "$$PW" --no-auth-warning ping 2>/dev/null | grep -q PONG
+      }
+      resolve_master_ip() {
+        getent ahostsv4 "$$1" 2>/dev/null | awk '{print $$1; exit}'
+      }
+      echo "等待 redis-master 就绪（overlay）..."
+      MASTER_HOST=""
+      MASTER_IP=""
+      n=0
+      while [ $$n -lt 90 ]; do
+        for H in redis-master tasks.redis-master; do
+          IP=$$(resolve_master_ip "$$H")
+          if [ -n "$$IP" ] && master_ping "$$IP" "$$REDIS_MASTER_PORT"; then
+            MASTER_HOST="$$H"
+            MASTER_IP="$$IP"
+            break
+          fi
+        done
+        [ -n "$$MASTER_IP" ] && break
+        n=$$((n + 1))
+        sleep 2
+      done
+      if [ -z "$$MASTER_IP" ]; then
+        echo "超时：无法 PING redis-master" >&2
+        exit 1
+      fi
+      echo "redis-master 就绪 $$MASTER_HOST -> $$MASTER_IP:$$REDIS_MASTER_PORT"
+      MONITOR_IP="$${MASTER_INTERNAL_IP:?need MASTER_INTERNAL_IP}"
+      MONITOR_PORT="$${MASTER_INTERNAL_PORT:-55701}"
+      echo "monitor 内网 $${MONITOR_IP}:$${MONITOR_PORT} quorum=$${QUORUM}"
+      CONF=/tmp/sentinel.conf
+      cp /usr/local/etc/redis/sentinel-base.conf "$$CONF"
+      printf 'requirepass %s\n' "$$PW" >> "$$CONF"
+      if [ -n "$${SENTINEL_ANNOUNCE_IP:-}" ]; then
+        printf 'sentinel announce-ip %s\n' "$$SENTINEL_ANNOUNCE_IP" >> "$$CONF"
+      fi
+      if [ -n "$${SENTINEL_ANNOUNCE_PORT:-}" ]; then
+        printf 'sentinel announce-port %s\n' "$$SENTINEL_ANNOUNCE_PORT" >> "$$CONF"
+      fi
+      printf 'sentinel auth-pass %s %s\n' "$$MASTER_NAME" "$$PW" >> "$$CONF"
+      printf 'sentinel monitor %s %s %s %s\n' "$$MASTER_NAME" "$$MONITOR_IP" "$$MONITOR_PORT" "$$QUORUM" >> "$$CONF"
+      SENTINEL_LISTEN_PORT="$${SENTINEL_LISTEN_PORT:-55711}"
+      sed -i "s/^port .*/port $${SENTINEL_LISTEN_PORT}/" "$$CONF"
+      exec redis-server "$$CONF" --sentinel --port "$$SENTINEL_LISTEN_PORT"
+  environment:
+    SENTINEL_MASTER_NAME: myMasterHa
+    SENTINEL_QUORUM: "3"
+    REDIS_MONITOR_MODE: internal
+    MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
+    MASTER_INTERNAL_PORT: "55701"
+    REDIS_MASTER_PORT: "55701"
+    SENTINEL_LISTEN_PORT: "55711"
+  deploy:
+    replicas: 1
+    restart_policy:
+      condition: any
+      delay: 5s
+      max_attempts: 0
+    resources:
+      limits:
+        cpus: "0.5"
+        memory: 256M
+      reservations:
+        memory: 64M
+
+services:
+  redis-master:
+    <<: *redis-base
+    hostname: redis-master
+    environment:
+      REDIS_HEALTH_PORT: "55701"
+    volumes:
+      - type: bind
+        source: /docker/redis/redis-ha-sz/data/master
+        target: /data
+    command:
+      - sh
+      - -c
+      - >
+        PW=$$(cat /run/secrets/redis_password);
+        exec redis-server /usr/local/etc/redis/redis.conf
+        --port 55701
+        --requirepass "$$PW"
+        --masterauth "$$PW"
+        --replica-announce-ip ${NODE1_INTERNAL_IP}
+        --replica-announce-port 55701
+    ports:
+      - target: 55701
+        published: 55701
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE1_HOSTNAME:-xhc-sz-1}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          memory: 256M
+
+  redis-replica-1:
+    <<: *redis-base
+    hostname: redis-replica-1
+    environment:
+      REDIS_HEALTH_PORT: "55702"
+    volumes:
+      - type: bind
+        source: /docker/redis/redis-ha-sz/data/replica-1
+        target: /data
+    command:
+      - sh
+      - -c
+      - >
+        PW=$$(cat /run/secrets/redis_password);
+        until redis-cli -h redis-master -p 55701 -a "$$PW" --no-auth-warning ping 2>/dev/null | grep -q PONG; do sleep 2; done;
+        exec redis-server /usr/local/etc/redis/redis.conf
+        --port 55702
+        --requirepass "$$PW"
+        --masterauth "$$PW"
+        --replicaof redis-master 55701
+        --replica-announce-ip ${NODE2_INTERNAL_IP}
+        --replica-announce-port 55702
+    ports:
+      - target: 55702
+        published: 55702
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE2_HOSTNAME:-xhc-sz-2}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          memory: 256M
+
+  redis-replica-2:
+    <<: *redis-base
+    hostname: redis-replica-2
+    environment:
+      REDIS_HEALTH_PORT: "55703"
+    volumes:
+      - type: bind
+        source: /docker/redis/redis-ha-sz/data/replica-2
+        target: /data
+    command:
+      - sh
+      - -c
+      - >
+        PW=$$(cat /run/secrets/redis_password);
+        until redis-cli -h redis-master -p 55701 -a "$$PW" --no-auth-warning ping 2>/dev/null | grep -q PONG; do sleep 2; done;
+        exec redis-server /usr/local/etc/redis/redis.conf
+        --port 55703
+        --requirepass "$$PW"
+        --masterauth "$$PW"
+        --replicaof redis-master 55701
+        --replica-announce-ip ${NODE3_INTERNAL_IP}
+        --replica-announce-port 55703
+    ports:
+      - target: 55703
+        published: 55703
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE3_HOSTNAME:-xhc-sz-3}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          memory: 256M
+
+  redis-replica-3:
+    <<: *redis-base
+    hostname: redis-replica-3
+    environment:
+      REDIS_HEALTH_PORT: "55704"
+    volumes:
+      - type: bind
+        source: /docker/redis/redis-ha-sz/data/replica-3
+        target: /data
+    command:
+      - sh
+      - -c
+      - >
+        PW=$$(cat /run/secrets/redis_password);
+        until redis-cli -h redis-master -p 55701 -a "$$PW" --no-auth-warning ping 2>/dev/null | grep -q PONG; do sleep 2; done;
+        exec redis-server /usr/local/etc/redis/redis.conf
+        --port 55704
+        --requirepass "$$PW"
+        --masterauth "$$PW"
+        --replicaof redis-master 55701
+        --replica-announce-ip ${NODE4_INTERNAL_IP}
+        --replica-announce-port 55704
+    ports:
+      - target: 55704
+        published: 55704
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE4_HOSTNAME:-xhc-sz-4}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          memory: 256M
+
+  redis-replica-4:
+    <<: *redis-base
+    hostname: redis-replica-4
+    environment:
+      REDIS_HEALTH_PORT: "55705"
+    volumes:
+      - type: bind
+        source: /docker/redis/redis-ha-sz/data/replica-4
+        target: /data
+    command:
+      - sh
+      - -c
+      - >
+        PW=$$(cat /run/secrets/redis_password);
+        until redis-cli -h redis-master -p 55701 -a "$$PW" --no-auth-warning ping 2>/dev/null | grep -q PONG; do sleep 2; done;
+        exec redis-server /usr/local/etc/redis/redis.conf
+        --port 55705
+        --requirepass "$$PW"
+        --masterauth "$$PW"
+        --replicaof redis-master 55701
+        --replica-announce-ip ${NODE5_INTERNAL_IP}
+        --replica-announce-port 55705
+    ports:
+      - target: 55705
+        published: 55705
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE5_HOSTNAME:-xhc-sz-5}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          memory: 256M
+
+  redis-sentinel-1:
+    <<: *sentinel-base
+    hostname: redis-sentinel-1
+    environment:
+      SENTINEL_MASTER_NAME: myMasterHa
+      SENTINEL_QUORUM: "3"
+      SENTINEL_ANNOUNCE_IP: ${NODE1_INTERNAL_IP}
+      SENTINEL_ANNOUNCE_PORT: "55711"
+      REDIS_MONITOR_MODE: internal
+      MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
+      MASTER_INTERNAL_PORT: "55701"
+      REDIS_MASTER_PORT: "55701"
+      SENTINEL_LISTEN_PORT: "55711"
+    ports:
+      - target: 55711
+        published: 55711
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE1_HOSTNAME:-xhc-sz-1}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 64M
+
+  redis-sentinel-2:
+    <<: *sentinel-base
+    hostname: redis-sentinel-2
+    environment:
+      SENTINEL_MASTER_NAME: myMasterHa
+      SENTINEL_QUORUM: "3"
+      SENTINEL_ANNOUNCE_IP: ${NODE2_INTERNAL_IP}
+      SENTINEL_ANNOUNCE_PORT: "55711"
+      REDIS_MONITOR_MODE: internal
+      MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
+      MASTER_INTERNAL_PORT: "55701"
+      REDIS_MASTER_PORT: "55701"
+      SENTINEL_LISTEN_PORT: "55711"
+    ports:
+      - target: 55711
+        published: 55711
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE2_HOSTNAME:-xhc-sz-2}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 64M
+
+  redis-sentinel-3:
+    <<: *sentinel-base
+    hostname: redis-sentinel-3
+    environment:
+      SENTINEL_MASTER_NAME: myMasterHa
+      SENTINEL_QUORUM: "3"
+      SENTINEL_ANNOUNCE_IP: ${NODE3_INTERNAL_IP}
+      SENTINEL_ANNOUNCE_PORT: "55711"
+      REDIS_MONITOR_MODE: internal
+      MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
+      MASTER_INTERNAL_PORT: "55701"
+      REDIS_MASTER_PORT: "55701"
+      SENTINEL_LISTEN_PORT: "55711"
+    ports:
+      - target: 55711
+        published: 55711
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE3_HOSTNAME:-xhc-sz-3}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 64M
+
+  redis-sentinel-4:
+    <<: *sentinel-base
+    hostname: redis-sentinel-4
+    environment:
+      SENTINEL_MASTER_NAME: myMasterHa
+      SENTINEL_QUORUM: "3"
+      SENTINEL_ANNOUNCE_IP: ${NODE4_INTERNAL_IP}
+      SENTINEL_ANNOUNCE_PORT: "55711"
+      REDIS_MONITOR_MODE: internal
+      MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
+      MASTER_INTERNAL_PORT: "55701"
+      REDIS_MASTER_PORT: "55701"
+      SENTINEL_LISTEN_PORT: "55711"
+    ports:
+      - target: 55711
+        published: 55711
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE4_HOSTNAME:-xhc-sz-4}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 64M
+
+  redis-sentinel-5:
+    <<: *sentinel-base
+    hostname: redis-sentinel-5
+    environment:
+      SENTINEL_MASTER_NAME: myMasterHa
+      SENTINEL_QUORUM: "3"
+      SENTINEL_ANNOUNCE_IP: ${NODE5_INTERNAL_IP}
+      SENTINEL_ANNOUNCE_PORT: "55711"
+      REDIS_MONITOR_MODE: internal
+      MASTER_INTERNAL_IP: ${MASTER_INTERNAL_IP}
+      MASTER_INTERNAL_PORT: "55701"
+      REDIS_MASTER_PORT: "55701"
+      SENTINEL_LISTEN_PORT: "55711"
+    ports:
+      - target: 55711
+        published: 55711
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == ${NODE5_HOSTNAME:-xhc-sz-5}
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 0
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 64M

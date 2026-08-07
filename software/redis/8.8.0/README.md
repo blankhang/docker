@@ -4,11 +4,10 @@
 
 ## Swarm 主从 + Sentinel
 
-见 [docker-stack-1m2r3s/README.md](docker-stack-1m2r3s/README.md)：
+- **旧（并行保留）**：[docker-stack-1m2r3s](docker-stack-1m2r3s/README.md) — sz `redis-stack-sz.yml` / wh `redis-stack-wh.yml`
+- **新 HA（深圳 5 节点，0→1 教程）**：[docker-stack-ha-sz/README.md](docker-stack-ha-sz/README.md) — Redis **55701–55705** + Sentinel **55711**×5（quorum=3），可与旧集群并行后导数据切流
 
-- **sz**：[redis-stack-sz.yml](docker-stack-1m2r3s/redis-stack-sz.yml) — 1 主 4 从 + 3 Sentinel（`xhc-sz-1..5`）
-- **wh**：[redis-stack-wh.yml](docker-stack-1m2r3s/redis-stack-wh.yml) — 1 主 2 从 + 3 Sentinel（`xhc-wh-1..3`）
-- 部署：`./scripts/deploy.sh sz|wh`
+> SSH 请使用本机 Host 别名（如 `ssh root@sz-1`），文档不写 SSH 端口。
 
 ## Swarm 3 主 3 从 Cluster
 

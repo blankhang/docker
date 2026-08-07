@@ -1,0 +1,28 @@
+# Spring Boot — prod-sz 切到新 Redis HA（redis-ha-sz）后使用
+# 数据面：GET-MASTER-ADDR → 172.29.240.x / 172.29.238.x :55701..55705
+# Sentinel：五台各 55711（host），quorum=3；任意挂 2 台仍可 failover
+# 勿再使用旧 55502/55503；勿写 host/port；勿占 MySQL 的 55511
+
+spring:
+  data:
+    redis:
+      database: 0
+      password: ${REDIS_PASSWORD}
+      connect-timeout: 60s
+      timeout: 60s
+      client-type: Jedis
+      Jedis:
+        pool:
+          min-idle: 2
+          max-idle: 20
+          max-active: 50
+          max-wait: -1ms
+      sentinel:
+        master: myMasterHa
+        nodes:
+          - 172.29.240.103:55711
+          - 172.29.240.104:55711
+          - 172.29.240.105:55711
+          - 172.29.238.1:55711
+          - 172.29.238.2:55711
+        password: ${REDIS_PASSWORD}
