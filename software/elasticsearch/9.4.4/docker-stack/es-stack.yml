@@ -197,10 +197,15 @@ services:
       resources:
         limits:
           memory: 1G
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: pause
     environment:
       - SERVERNAME=kibana
       - SERVER_HOST=0.0.0.0
-      - ELASTICSEARCH_HOSTS=["http://es-node1:9200","http://es-node2:9200","http://es-node3:9200"]
+      # 3 节点：只保留前三个；5 节点生产请写全 es-node1..5
+      - ELASTICSEARCH_HOSTS=["http://es-node1:9200","http://es-node2:9200","http://es-node3:9200","http://es-node4:9200","http://es-node5:9200"]
       - ELASTICSEARCH_USERNAME=${KIBANA_USERNAME}
       - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
       - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY}
@@ -217,6 +222,13 @@ services:
       - MAP_INCLUDEELASTICMAPSSERVICE=false
     volumes:
       - /docker/es/es-prod-stack/data-kibana:/usr/share/kibana/data
+    healthcheck:
+      # /api/status：就绪返回 200；启动中可能 503
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:5601/api/status >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 180s
     networks:
       - es-net
 

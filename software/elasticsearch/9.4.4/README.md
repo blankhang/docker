@@ -250,6 +250,8 @@ docker stack deploy -c es-stack.yml es-prod
 ```
 
 > 各 `es-node*` 已配置 `healthcheck`（`curl` 访问本机 `9200`，需正确 `ELASTIC_PASSWORD`）。`start_period: 180s` 给足启动时间；探测失败后 Swarm 会按重启策略替换不健康任务。
+>
+> Kibana 已配置 `healthcheck`：`curl -sf http://127.0.0.1:5601/api/status`（就绪 200）。`start_period: 180s`。
 
 > `docker stack deploy` **没有** `--env-file`。`.env` 仅用于 compose 插值，须先 `source`，或：
 >

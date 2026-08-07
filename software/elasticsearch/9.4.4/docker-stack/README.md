@@ -68,6 +68,10 @@ docker compose --env-file .env -f es-stack.yml config | docker stack deploy -c -
 
 Kibana 精简项写在 `es-stack.yml` 的 `environment`（**不挂载** `kibana.yml` Swarm config，避免旧 config 残留已删除键导致 FATAL）。`conf/kibana-lean.yml` 仅为注释参考。
 
+Kibana `healthcheck`：`curl -sf http://127.0.0.1:5601/api/status`（`start_period: 180s`）。镜像须与 ES 同版本（`ELK_VERSION=9.4.4` → `kibana:9.4.4`）。
+
+生产机目录示例为 `/docker/es-stack/`（与仓库模板 `/docker/es/es-prod-stack/` 不同时，改 yml volumes 保持一致）。
+
 若日志仍报 `timelion.ui.enabled`：
 
 ```bash
