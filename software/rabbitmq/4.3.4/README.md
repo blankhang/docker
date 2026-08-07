@@ -23,7 +23,8 @@ Stack 名：`rabbitmq-prod-stack`
 
 - 发现：`cluster_formation.peer_discovery_backend = classic_config`（五个 `nodes.*` 写全）
 - Cookie：Swarm secret，**五机相同**
-- Ingress 会把已发布端口占满整个 Swarm，因此每节点端口必须不同（上表）
+- 发布端口用 **host mode**（非 ingress），并设 `endpoint_mode: dnsrr`：Erlang 集群必须解析到真实容器 IP；默认 VIP 会让 `rabbit-szN` 同时解析出 VIP+Task IP，Management 易间歇显示 **Node not running**
+- 每节点端口必须不同（上表；host 发布仅占本机）
 
 ```mermaid
 flowchart LR
@@ -230,3 +231,11 @@ docker stack rm rabbitmq-prod-stack
 ## 构建说明
 
 见 [`build/README.md`](build/README.md)。Stack 文件速查见 [`docker-stack/README.md`](docker-stack/README.md)。
+
+---
+
+## 9. HAProxy 统一入口（单地址客户端）
+
+五机各跑一份 HAProxy，对外统一 **19100**（AMQP）/ **19110**（Management）。域名可解析到 5 个节点 IP。
+
+详见 [`docker-stack/HAPROXY.md`](docker-stack/HAPROXY.md)，stack 文件：`docker-stack/rabbitmq-haproxy-stack.yml`。

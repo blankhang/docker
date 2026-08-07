@@ -1,0 +1,231 @@
+# RabbitMQ AMQP/Management 入口代理（每节点一份，host 发布端口）
+# 后端直连宿主机内网 IP:1910x/1911x，不依赖 rabbitmq-prod overlay。
+# hap-egress 仅给容器默认路由出站用，不参与 MQ 服务发现。
+services:
+  haproxy-sz1:
+    image: haproxy:3.4.3-alpine
+    hostname: haproxy-sz1
+    environment:
+      TZ: Asia/Shanghai
+    configs:
+      - source: haproxy_cfg_v4
+        target: /usr/local/etc/haproxy/haproxy.cfg
+    networks:
+      - hap-egress
+    ports:
+      - target: 19100
+        published: 19100
+        protocol: tcp
+        mode: host
+      - target: 19110
+        published: 19110
+        protocol: tcp
+        mode: host
+      - target: 19109
+        published: 19109
+        protocol: tcp
+        mode: host
+      - target: 19108
+        published: 19108
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == xhc-sz-1
+      restart_policy:
+        condition: any
+      update_config:
+        parallelism: 1
+        order: stop-first
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:19108/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  haproxy-sz2:
+    image: haproxy:3.4.3-alpine
+    hostname: haproxy-sz2
+    environment:
+      TZ: Asia/Shanghai
+    configs:
+      - source: haproxy_cfg_v4
+        target: /usr/local/etc/haproxy/haproxy.cfg
+    networks:
+      - hap-egress
+    ports:
+      - target: 19100
+        published: 19100
+        protocol: tcp
+        mode: host
+      - target: 19110
+        published: 19110
+        protocol: tcp
+        mode: host
+      - target: 19109
+        published: 19109
+        protocol: tcp
+        mode: host
+      - target: 19108
+        published: 19108
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == xhc-sz-2
+      restart_policy:
+        condition: any
+      update_config:
+        parallelism: 1
+        order: stop-first
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:19108/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  haproxy-sz3:
+    image: haproxy:3.4.3-alpine
+    hostname: haproxy-sz3
+    environment:
+      TZ: Asia/Shanghai
+    configs:
+      - source: haproxy_cfg_v4
+        target: /usr/local/etc/haproxy/haproxy.cfg
+    networks:
+      - hap-egress
+    ports:
+      - target: 19100
+        published: 19100
+        protocol: tcp
+        mode: host
+      - target: 19110
+        published: 19110
+        protocol: tcp
+        mode: host
+      - target: 19109
+        published: 19109
+        protocol: tcp
+        mode: host
+      - target: 19108
+        published: 19108
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == xhc-sz-3
+      restart_policy:
+        condition: any
+      update_config:
+        parallelism: 1
+        order: stop-first
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:19108/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  haproxy-sz4:
+    image: haproxy:3.4.3-alpine
+    hostname: haproxy-sz4
+    environment:
+      TZ: Asia/Shanghai
+    configs:
+      - source: haproxy_cfg_v4
+        target: /usr/local/etc/haproxy/haproxy.cfg
+    networks:
+      - hap-egress
+    ports:
+      - target: 19100
+        published: 19100
+        protocol: tcp
+        mode: host
+      - target: 19110
+        published: 19110
+        protocol: tcp
+        mode: host
+      - target: 19109
+        published: 19109
+        protocol: tcp
+        mode: host
+      - target: 19108
+        published: 19108
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == xhc-sz-4
+      restart_policy:
+        condition: any
+      update_config:
+        parallelism: 1
+        order: stop-first
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:19108/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  haproxy-sz5:
+    image: haproxy:3.4.3-alpine
+    hostname: haproxy-sz5
+    environment:
+      TZ: Asia/Shanghai
+    configs:
+      - source: haproxy_cfg_v4
+        target: /usr/local/etc/haproxy/haproxy.cfg
+    networks:
+      - hap-egress
+    ports:
+      - target: 19100
+        published: 19100
+        protocol: tcp
+        mode: host
+      - target: 19110
+        published: 19110
+        protocol: tcp
+        mode: host
+      - target: 19109
+        published: 19109
+        protocol: tcp
+        mode: host
+      - target: 19108
+        published: 19108
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == xhc-sz-5
+      restart_policy:
+        condition: any
+      update_config:
+        parallelism: 1
+        order: stop-first
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:19108/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+networks:
+  hap-egress:
+    driver: overlay
+
+configs:
+  haproxy_cfg_v4:
+    file: ./conf/haproxy.cfg

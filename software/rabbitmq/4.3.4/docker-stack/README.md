@@ -12,3 +12,7 @@ docker stack deploy --resolve-image never -c rabbitmq-stack.yml rabbitmq-prod-st
 ```
 
 镜像：`blankhang/rabbitmq:4.3.4-management` · config 名：`rabbitmq_config_v434_5n`
+
+### HAProxy 入口
+
+见 [`HAPROXY.md`](HAPROXY.md) 与 `rabbitmq-haproxy-stack.yml`。

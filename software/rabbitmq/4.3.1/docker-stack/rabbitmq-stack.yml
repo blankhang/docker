@@ -1,7 +1,7 @@
 #version: "3.9"
 services:
   rabbit-sz1:
-    image: blankhang/rabbitmq:4.3.4-management
+    image: blankhang/rabbitmq:4.3.1-management
     hostname: rabbit-sz1
     environment:
       RABBITMQ_NODENAME: "rabbit-sz1@rabbit-sz1"
@@ -22,7 +22,7 @@ services:
         mode: host
     # The uid/gid/mode arguments below prevent permission errors at runtime
     configs:
-      - source: rabbitmq_config_v434_5n
+      - source: rabbitmq_config_v431_5n
         target: /etc/rabbitmq/rabbitmq.conf
         uid: "999"
         gid: "999"
@@ -76,7 +76,7 @@ services:
 
 
   rabbit-sz2:
-    image: blankhang/rabbitmq:4.3.4-management
+    image: blankhang/rabbitmq:4.3.1-management
     hostname: rabbit-sz2
     environment:
       RABBITMQ_NODENAME: "rabbit-sz2@rabbit-sz2"
@@ -97,7 +97,7 @@ services:
         mode: host
     # The uid/gid/mode arguments below prevent permission errors at runtime
     configs:
-      - source: rabbitmq_config_v434_5n
+      - source: rabbitmq_config_v431_5n
         target: /etc/rabbitmq/rabbitmq.conf
         uid: "999"
         gid: "999"
@@ -151,7 +151,7 @@ services:
 
 
   rabbit-sz3:
-    image: blankhang/rabbitmq:4.3.4-management
+    image: blankhang/rabbitmq:4.3.1-management
     hostname: rabbit-sz3
     environment:
       RABBITMQ_NODENAME: "rabbit-sz3@rabbit-sz3"
@@ -172,7 +172,7 @@ services:
         mode: host
     # The uid/gid/mode arguments below prevent permission errors at runtime
     configs:
-      - source: rabbitmq_config_v434_5n
+      - source: rabbitmq_config_v431_5n
         target: /etc/rabbitmq/rabbitmq.conf
         uid: "999"
         gid: "999"
@@ -226,7 +226,7 @@ services:
 
 
   rabbit-sz4:
-    image: blankhang/rabbitmq:4.3.4-management
+    image: blankhang/rabbitmq:4.3.1-management
     hostname: rabbit-sz4
     environment:
       RABBITMQ_NODENAME: "rabbit-sz4@rabbit-sz4"
@@ -247,7 +247,7 @@ services:
         mode: host
     # The uid/gid/mode arguments below prevent permission errors at runtime
     configs:
-      - source: rabbitmq_config_v434_5n
+      - source: rabbitmq_config_v431_5n
         target: /etc/rabbitmq/rabbitmq.conf
         uid: "999"
         gid: "999"
@@ -301,7 +301,7 @@ services:
 
 
   rabbit-sz5:
-    image: blankhang/rabbitmq:4.3.4-management
+    image: blankhang/rabbitmq:4.3.1-management
     hostname: rabbit-sz5
     environment:
       RABBITMQ_NODENAME: "rabbit-sz5@rabbit-sz5"
@@ -322,7 +322,7 @@ services:
         mode: host
     # The uid/gid/mode arguments below prevent permission errors at runtime
     configs:
-      - source: rabbitmq_config_v434_5n
+      - source: rabbitmq_config_v431_5n
         target: /etc/rabbitmq/rabbitmq.conf
         uid: "999"
         gid: "999"
@@ -386,5 +386,5 @@ secrets:
     file: ./rabbitmq_erlang_cookie.txt
 
 configs:
-  rabbitmq_config_v434_5n:
+  rabbitmq_config_v431_5n:
     file: ./rabbitmq-prod.conf
