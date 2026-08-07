@@ -1,8 +1,8 @@
-## arm64/amd64 arch support rabbitmq:4.2.5-management image with GMT+8 TZ 
-## 支持 arm64 amd64 架构的 rabbitmq:4.2.5-management GMT+8时区的底包镜像 添加启用延迟队列(仅限<=4.2.0)插件 从4.3.0开始官方自带延迟队列
+## arm64/amd64 arch support rabbitmq:4.3.4-management image with GMT+8 TZ 
+## 支持 arm64 amd64 架构的 rabbitmq:4.3.4-management GMT+8时区的底包镜像 添加启用延迟队列(仅限<=4.2.0)插件 从4.3.0开始官方自带延迟队列
 source code at https://github.com/blankhang/docker/tree/master/rabbitmq
 
-### 基于官方 rabbitmq {3.12.0/4.0.2/4.1.0/4.1.1/4.2.5/4.3.0}-management 版本
+### 基于官方 rabbitmq {3.12.0/4.0.2/4.1.0/4.1.1/4.2.5/4.3.0/4.3.1/4.3.4}-management 版本
 ### 默认启用如下插件
 ### By default, the following plug-ins are enabled
 - rabbitmq_management

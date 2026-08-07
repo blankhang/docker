@@ -10,7 +10,7 @@ env:
   IMAGE_ROOT: software
   IMAGE: rabbitmq
   IMAGE_NAME: blankhang/rabbitmq # 镜像名
-  IMAGE_VERSION: 4.3.1 # 版本号
+  IMAGE_VERSION: 4.3.4 # 版本号
   DEFAULT_ALI_SERVER_HOSTNAMES: sz-1.xhc-bot.com,sz-2.xhc-bot.com,sz-3.xhc-bot.com,sz-4.xhc-bot.com,sz-5.xhc-bot.com,sz-6.xhc-bot.com,wh-1.xhc-bot.com,wh-2.xhc-bot.com,wh-3.xhc-bot.com,us-1.xhc-bot.com,us-2.xhc-bot.com,us-3.xhc-bot.com
 
 jobs:

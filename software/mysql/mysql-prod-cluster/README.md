@@ -23,7 +23,7 @@
 | sz-5 | 172.29.238.2 | 5 | SECONDARY | 2G |
 
 - 五机均跑 `mysql8-prod-cluster` + `mysql-prod-router`；Router `state.json` 含全部 5 成员。
-- 容错：可容忍 **2** 节点故障。SSH 端口 **9117**。
+- 容错：可容忍 **2** 节点故障。
 - 扩容前全量备份：`sz-2:/docker/mysql/backup/mysql-prod-cluster_all_20260806_135020.sql.gz`（65M）。
 
 ```mermaid

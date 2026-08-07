@@ -1,0 +1,340 @@
+#version: "3.9"
+services:
+  rabbit-sz1:
+    image: blankhang/rabbitmq:4.3.4-management
+    hostname: rabbit-sz1
+    environment:
+      RABBITMQ_NODENAME: "rabbit-sz1@rabbit-sz1"
+    volumes:
+      - /docker/rabbitmq/rabbitmq-prod-stack/data-rabbitmq-1:/var/lib/rabbitmq
+    ports:
+      - "19101:5672"
+      - "19111:15672"
+      - "19121:15674" # web stomp for wx
+    # The uid/gid/mode arguments below prevent permission errors at runtime
+    configs:
+      - source: rabbitmq_config_v434_5n
+        target: /etc/rabbitmq/rabbitmq.conf
+        uid: "999"
+        gid: "999"
+        mode: 0600
+    secrets:
+      - source: rabbitmq_erlang_cookie
+        target: /var/lib/rabbitmq/.erlang.cookie
+        uid: "999"
+        gid: "999"
+        mode: 0600
+    #      - source: rabbitmq_definitions
+    #        target: /etc/rabbitmq/definitions.json
+    #        uid: "999"
+    #        gid: "999"
+    #        mode: 0600
+
+    # See https://www.rabbitmq.com/configure.html#kernel-limits
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - 'node.hostname == xhc-sz-1'
+
+      # Ensure stopped instances will be restarted. RabbitMQ seems to error with an exit
+      # code 0 sometimes for some reason, so `any` catches that too.
+      restart_policy:
+        condition: any
+
+      # Ensure we start one node after the other, strictly sequential, and make sure it
+      # is running before starting the next. This makes sure a cluster is formed instead
+      # of every node bootstrapping its own.
+      update_config:
+        parallelism: 1
+        monitor: 10s
+        order: stop-first
+
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      #      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 5s
+      retries: 60
+      start_period: 180s
+    networks:
+      - rabbitmq-prod
+
+
+  rabbit-sz2:
+    image: blankhang/rabbitmq:4.3.4-management
+    hostname: rabbit-sz2
+    environment:
+      RABBITMQ_NODENAME: "rabbit-sz2@rabbit-sz2"
+    volumes:
+      - /docker/rabbitmq/rabbitmq-prod-stack/data-rabbitmq-2:/var/lib/rabbitmq
+    ports:
+      - "19102:5672"
+      - "19112:15672"
+      - "19122:15674" # web stomp for wx
+    # The uid/gid/mode arguments below prevent permission errors at runtime
+    configs:
+      - source: rabbitmq_config_v434_5n
+        target: /etc/rabbitmq/rabbitmq.conf
+        uid: "999"
+        gid: "999"
+        mode: 0600
+    secrets:
+      - source: rabbitmq_erlang_cookie
+        target: /var/lib/rabbitmq/.erlang.cookie
+        uid: "999"
+        gid: "999"
+        mode: 0600
+    #      - source: rabbitmq_definitions
+    #        target: /etc/rabbitmq/definitions.json
+    #        uid: "999"
+    #        gid: "999"
+    #        mode: 0600
+
+    # See https://www.rabbitmq.com/configure.html#kernel-limits
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - 'node.hostname == xhc-sz-2'
+
+      # Ensure stopped instances will be restarted. RabbitMQ seems to error with an exit
+      # code 0 sometimes for some reason, so `any` catches that too.
+      restart_policy:
+        condition: any
+
+      # Ensure we start one node after the other, strictly sequential, and make sure it
+      # is running before starting the next. This makes sure a cluster is formed instead
+      # of every node bootstrapping its own.
+      update_config:
+        parallelism: 1
+        monitor: 10s
+        order: stop-first
+
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      #      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 5s
+      retries: 60
+      start_period: 180s
+    networks:
+      - rabbitmq-prod
+
+
+  rabbit-sz3:
+    image: blankhang/rabbitmq:4.3.4-management
+    hostname: rabbit-sz3
+    environment:
+      RABBITMQ_NODENAME: "rabbit-sz3@rabbit-sz3"
+    volumes:
+      - /docker/rabbitmq/rabbitmq-prod-stack/data-rabbitmq-3:/var/lib/rabbitmq
+    ports:
+      - "19103:5672"
+      - "19113:15672"
+      - "19123:15674" # web stomp for wx
+    # The uid/gid/mode arguments below prevent permission errors at runtime
+    configs:
+      - source: rabbitmq_config_v434_5n
+        target: /etc/rabbitmq/rabbitmq.conf
+        uid: "999"
+        gid: "999"
+        mode: 0600
+    secrets:
+      - source: rabbitmq_erlang_cookie
+        target: /var/lib/rabbitmq/.erlang.cookie
+        uid: "999"
+        gid: "999"
+        mode: 0600
+    #      - source: rabbitmq_definitions
+    #        target: /etc/rabbitmq/definitions.json
+    #        uid: "999"
+    #        gid: "999"
+    #        mode: 0600
+
+    # See https://www.rabbitmq.com/configure.html#kernel-limits
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - 'node.hostname == xhc-sz-3'
+
+      # Ensure stopped instances will be restarted. RabbitMQ seems to error with an exit
+      # code 0 sometimes for some reason, so `any` catches that too.
+      restart_policy:
+        condition: any
+
+      # Ensure we start one node after the other, strictly sequential, and make sure it
+      # is running before starting the next. This makes sure a cluster is formed instead
+      # of every node bootstrapping its own.
+      update_config:
+        parallelism: 1
+        monitor: 10s
+        order: stop-first
+
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      #      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 5s
+      retries: 60
+      start_period: 180s
+    networks:
+      - rabbitmq-prod
+
+
+  rabbit-sz4:
+    image: blankhang/rabbitmq:4.3.4-management
+    hostname: rabbit-sz4
+    environment:
+      RABBITMQ_NODENAME: "rabbit-sz4@rabbit-sz4"
+    volumes:
+      - /docker/rabbitmq/rabbitmq-prod-stack/data-rabbitmq-4:/var/lib/rabbitmq
+    ports:
+      - "19104:5672"
+      - "19114:15672"
+      - "19124:15674" # web stomp for wx
+    # The uid/gid/mode arguments below prevent permission errors at runtime
+    configs:
+      - source: rabbitmq_config_v434_5n
+        target: /etc/rabbitmq/rabbitmq.conf
+        uid: "999"
+        gid: "999"
+        mode: 0600
+    secrets:
+      - source: rabbitmq_erlang_cookie
+        target: /var/lib/rabbitmq/.erlang.cookie
+        uid: "999"
+        gid: "999"
+        mode: 0600
+    #      - source: rabbitmq_definitions
+    #        target: /etc/rabbitmq/definitions.json
+    #        uid: "999"
+    #        gid: "999"
+    #        mode: 0600
+
+    # See https://www.rabbitmq.com/configure.html#kernel-limits
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - 'node.hostname == xhc-sz-4'
+
+      # Ensure stopped instances will be restarted. RabbitMQ seems to error with an exit
+      # code 0 sometimes for some reason, so `any` catches that too.
+      restart_policy:
+        condition: any
+
+      # Ensure we start one node after the other, strictly sequential, and make sure it
+      # is running before starting the next. This makes sure a cluster is formed instead
+      # of every node bootstrapping its own.
+      update_config:
+        parallelism: 1
+        monitor: 10s
+        order: stop-first
+
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      #      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 5s
+      retries: 60
+      start_period: 180s
+    networks:
+      - rabbitmq-prod
+
+
+  rabbit-sz5:
+    image: blankhang/rabbitmq:4.3.4-management
+    hostname: rabbit-sz5
+    environment:
+      RABBITMQ_NODENAME: "rabbit-sz5@rabbit-sz5"
+    volumes:
+      - /docker/rabbitmq/rabbitmq-prod-stack/data-rabbitmq-5:/var/lib/rabbitmq
+    ports:
+      - "19105:5672"
+      - "19115:15672"
+      - "19125:15674" # web stomp for wx
+    # The uid/gid/mode arguments below prevent permission errors at runtime
+    configs:
+      - source: rabbitmq_config_v434_5n
+        target: /etc/rabbitmq/rabbitmq.conf
+        uid: "999"
+        gid: "999"
+        mode: 0600
+    secrets:
+      - source: rabbitmq_erlang_cookie
+        target: /var/lib/rabbitmq/.erlang.cookie
+        uid: "999"
+        gid: "999"
+        mode: 0600
+    #      - source: rabbitmq_definitions
+    #        target: /etc/rabbitmq/definitions.json
+    #        uid: "999"
+    #        gid: "999"
+    #        mode: 0600
+
+    # See https://www.rabbitmq.com/configure.html#kernel-limits
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - 'node.hostname == xhc-sz-5'
+
+      # Ensure stopped instances will be restarted. RabbitMQ seems to error with an exit
+      # code 0 sometimes for some reason, so `any` catches that too.
+      restart_policy:
+        condition: any
+
+      # Ensure we start one node after the other, strictly sequential, and make sure it
+      # is running before starting the next. This makes sure a cluster is formed instead
+      # of every node bootstrapping its own.
+      update_config:
+        parallelism: 1
+        monitor: 10s
+        order: stop-first
+
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      #      test: ["CMD", "rabbitmqctl", "node_health_check"]
+      interval: 30s
+      timeout: 5s
+      retries: 60
+      start_period: 180s
+    networks:
+      - rabbitmq-prod
+
+networks:
+  rabbitmq-prod:
+    driver: overlay
+
+secrets:
+#  rabbitmq_definitions:
+#    file: ./rabbitmq_definitions.json
+
+  rabbitmq_erlang_cookie:
+    file: ./rabbitmq_erlang_cookie.txt
+
+configs:
+  rabbitmq_config_v434_5n:
+    file: ./rabbitmq-prod.conf
