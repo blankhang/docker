@@ -51,6 +51,17 @@ services:
     volumes:
       - /docker/es/es-prod-stack/data-elasticsearch-node1:/usr/share/elasticsearch/data
       - /docker/es/es-prod-stack/es-backup:/usr/share/elasticsearch/backup
+    healthcheck:
+      # 节点存活探测（勿用 cluster health，避免集群 yellow/red 误杀健康节点）
+      test:
+        [
+          "CMD-SHELL",
+          'curl -fsS -u "elastic:$${ELASTIC_PASSWORD}" http://127.0.0.1:9200 >/dev/null || exit 1',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
     networks:
       - es-net
 
@@ -100,6 +111,17 @@ services:
     volumes:
       - /docker/es/es-prod-stack/data-elasticsearch-node2:/usr/share/elasticsearch/data
       - /docker/es/es-prod-stack/es-backup:/usr/share/elasticsearch/backup
+    healthcheck:
+      # 节点存活探测（勿用 cluster health，避免集群 yellow/red 误杀健康节点）
+      test:
+        [
+          "CMD-SHELL",
+          'curl -fsS -u "elastic:$${ELASTIC_PASSWORD}" http://127.0.0.1:9200 >/dev/null || exit 1',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
     networks:
       - es-net
 
@@ -150,6 +172,17 @@ services:
     volumes:
       - /docker/es/es-prod-stack/data-elasticsearch-node3:/usr/share/elasticsearch/data
       - /docker/es/es-prod-stack/es-backup:/usr/share/elasticsearch/backup
+    healthcheck:
+      # 节点存活探测（勿用 cluster health，避免集群 yellow/red 误杀健康节点）
+      test:
+        [
+          "CMD-SHELL",
+          'curl -fsS -u "elastic:$${ELASTIC_PASSWORD}" http://127.0.0.1:9200 >/dev/null || exit 1',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
     networks:
       - es-net
 

@@ -249,6 +249,8 @@ set -a && source .env && set +a
 docker stack deploy -c es-stack.yml es-prod
 ```
 
+> 各 `es-node*` 已配置 `healthcheck`（`curl` 访问本机 `9200`，需正确 `ELASTIC_PASSWORD`）。`start_period: 180s` 给足启动时间；探测失败后 Swarm 会按重启策略替换不健康任务。
+
 > `docker stack deploy` **没有** `--env-file`。`.env` 仅用于 compose 插值，须先 `source`，或：
 >
 > `docker compose --env-file .env -f es-stack.yml config | docker stack deploy -c - es-prod`
