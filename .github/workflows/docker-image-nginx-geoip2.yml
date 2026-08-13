@@ -95,6 +95,8 @@ jobs:
           GEOIP2_REF: ${{ env.GEOIP2_REF }}
           RELEASE_REPOSITORY: ${{ env.RELEASE_REPOSITORY }}
           RELEASE_TOKEN: ${{ secrets.GEOIP2_RELEASE_TOKEN || '' }}
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
         run: |
           python3 <<'PY'
           import json
@@ -104,6 +106,7 @@ jobs:
           import urllib.request
 
           version_re = re.compile(r"^\d+\.\d+\.\d+$")
+          USER_AGENT = "github-actions-nginx-geoip2"
 
           def parse_version(version):
               return tuple(map(int, version.split(".")))
@@ -112,28 +115,57 @@ jobs:
               _, minor, _ = parse_version(version)
               return minor % 2 == 1
 
-          def fetch_json(url, headers=None):
+          def docker_hub_login():
+              username = os.environ.get("DOCKER_HUB_USERNAME", "").strip()
+              password = os.environ.get("DOCKER_HUB_PASSWORD", "").strip()
+              if not username or not password:
+                  raise RuntimeError(
+                      "缺少 DOCKER_HUB_USERNAME / DOCKER_HUB_PASSWORD，无法访问 Docker Hub API"
+                  )
               req = urllib.request.Request(
-                  url,
-                  headers=headers or {"User-Agent": "github-actions-nginx-geoip2"},
+                  "https://hub.docker.com/v2/users/login/",
+                  data=json.dumps(
+                      {"username": username, "password": password}
+                  ).encode("utf-8"),
+                  headers={
+                      "User-Agent": USER_AGENT,
+                      "Content-Type": "application/json",
+                  },
+                  method="POST",
               )
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  token = json.load(resp).get("token", "")
+              if not token:
+                  raise RuntimeError("Docker Hub 登录成功但未返回 token")
+              return token
+
+          def hub_headers():
+              return {
+                  "User-Agent": USER_AGENT,
+                  "Authorization": f"JWT {HUB_TOKEN}",
+              }
+
+          def fetch_hub_json(url):
+              req = urllib.request.Request(url, headers=hub_headers())
               with urllib.request.urlopen(req, timeout=30) as resp:
                   return json.load(resp)
 
           def fetch_github_json(url, token=""):
               headers = {
-                  "User-Agent": "github-actions-nginx-geoip2",
+                  "User-Agent": USER_AGENT,
                   "Accept": "application/vnd.github+json",
               }
               if token:
                   headers["Authorization"] = f"Bearer {token}"
-              return fetch_json(url, headers=headers)
+              req = urllib.request.Request(url, headers=headers)
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  return json.load(resp)
 
           def head_ok(url):
               req = urllib.request.Request(
                   url,
                   method="HEAD",
-                  headers={"User-Agent": "github-actions-nginx-geoip2"},
+                  headers={"User-Agent": USER_AGENT},
               )
               try:
                   with urllib.request.urlopen(req, timeout=30) as resp:
@@ -147,10 +179,7 @@ jobs:
                   f"https://hub.docker.com/v2/namespaces/{namespace}/"
                   f"repositories/{repo}/tags/{tag}"
               )
-              req = urllib.request.Request(
-                  url,
-                  headers={"User-Agent": "github-actions-nginx-geoip2"},
-              )
+              req = urllib.request.Request(url, headers=hub_headers())
               try:
                   with urllib.request.urlopen(req, timeout=30):
                       return True
@@ -174,7 +203,7 @@ jobs:
               url = "https://hub.docker.com/v2/namespaces/library/repositories/nginx/tags?page_size=100"
               versions = set()
               while url:
-                  payload = fetch_json(url)
+                  payload = fetch_hub_json(url)
                   for item in payload.get("results", []):
                       name = item.get("name", "")
                       if version_re.fullmatch(name) and is_mainline_release(name):
@@ -191,6 +220,7 @@ jobs:
           geoip2_ref = os.environ["GEOIP2_REF"]
           release_repository = os.environ["RELEASE_REPOSITORY"]
           release_token = os.environ.get("RELEASE_TOKEN", "")
+          HUB_TOKEN = docker_hub_login()
 
           latest_version = latest_mainline_nginx()
           target_version = requested_version or latest_version
