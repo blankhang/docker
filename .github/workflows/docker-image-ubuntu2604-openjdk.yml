@@ -66,6 +66,13 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
+    - name: Login to AliDockerHub
+      uses: docker/login-action@v4
+      with:
+        registry: ${{ secrets.ALI_REGISTRY }}
+        username: ${{ secrets.ALI_REGISTRY_USERNAME }}
+        password: ${{ secrets.ALI_REGISTRY_PASSWORD }}
+
     - name: Build openjdk by platform and push by digest
       id: openjdk_build
       uses: docker/build-push-action@v7
@@ -74,12 +81,14 @@ jobs:
         context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}
         file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/openjdk${{ matrix.jdk }}/Dockerfile
         platforms: ${{ matrix.platform }}
-        # 关闭 attestation，避免阿里云 ACR 拒绝 application/vnd.oci.empty.v1+json
+        # 关闭 attestation；双仓库按 digest 推送，避免 imagetools 跨仓复制 referrers
         provenance: false
         sbom: false
         cache-from: type=gha,scope=${{ github.workflow }}-openjdk${{ matrix.jdk }}-${{ matrix.arch }}
         cache-to: type=gha,mode=max,scope=${{ github.workflow }}-openjdk${{ matrix.jdk }}-${{ matrix.arch }}
-        outputs: type=image,name=${{ env.IMAGE_REPO }},push-by-digest=true,name-canonical=true,push=true
+        outputs: |
+          type=image,name=${{ env.IMAGE_REPO }},push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=false
+          type=image,name=${{ secrets.ALI_REGISTRY }}/blankhang/${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=false
 
     - name: Export digest
       run: |
@@ -142,13 +151,13 @@ jobs:
           find /tmp/digests -ls || true
           exit 1
         fi
-        refs=()
+        refs_hub=()
+        refs_ali=()
         for f in "${files[@]}"; do
-          refs+=("${IMAGE}@sha256:$(basename "$f")")
+          digest="$(basename "$f")"
+          refs_hub+=("${IMAGE}@sha256:${digest}")
+          refs_ali+=("${ALI_IMAGE}@sha256:${digest}")
         done
-        # 用平台 digest 直接创建双仓库 index，避免从 Hub tag 复制 attestation
-        docker buildx imagetools create \
-          -t "${IMAGE}:${TAG}" \
-          -t "${ALI_IMAGE}:${TAG}" \
-          "${refs[@]}"
+        docker buildx imagetools create -t "${IMAGE}:${TAG}" "${refs_hub[@]}"
+        docker buildx imagetools create -t "${ALI_IMAGE}:${TAG}" "${refs_ali[@]}"
         docker buildx imagetools inspect "${ALI_IMAGE}:${TAG}"
