@@ -74,6 +74,9 @@ jobs:
         context: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}
         file: ./${{ env.IMAGE_ROOT }}/${{ env.IMAGE }}/openjdk${{ matrix.jdk }}/Dockerfile
         platforms: ${{ matrix.platform }}
+        # 关闭 attestation，避免阿里云 ACR 拒绝 application/vnd.oci.empty.v1+json
+        provenance: false
+        sbom: false
         cache-from: type=gha,scope=${{ github.workflow }}-openjdk${{ matrix.jdk }}-${{ matrix.arch }}
         cache-to: type=gha,mode=max,scope=${{ github.workflow }}-openjdk${{ matrix.jdk }}-${{ matrix.arch }}
         outputs: type=image,name=${{ env.IMAGE_REPO }},push-by-digest=true,name-canonical=true,push=true
@@ -126,10 +129,11 @@ jobs:
         username: ${{ secrets.ALI_REGISTRY_USERNAME }}
         password: ${{ secrets.ALI_REGISTRY_PASSWORD }}
 
-    - name: Merge and push DockerHub multi-arch manifest
+    - name: Merge and push multi-arch manifests
       env:
         IMAGE: ${{ env.IMAGE_REPO }}
         TAG: openjdk${{ matrix.jdk }}
+        ALI_IMAGE: ${{ secrets.ALI_REGISTRY }}/blankhang/${{ env.IMAGE }}
       run: |
         set -euo pipefail
         mapfile -t files < <(find /tmp/digests -type f)
@@ -142,13 +146,9 @@ jobs:
         for f in "${files[@]}"; do
           refs+=("${IMAGE}@sha256:$(basename "$f")")
         done
-        docker buildx imagetools create -t "${IMAGE}:${TAG}" "${refs[@]}"
-
-    - name: Copy multi-arch manifest to Ali Registry
-      run: |
-        set -euo pipefail
-        TAG="openjdk${{ matrix.jdk }}"
-        SRC="${{ env.IMAGE_REPO }}:${TAG}"
-        ALI="${{ secrets.ALI_REGISTRY }}/blankhang/${{ env.IMAGE }}:${TAG}"
-        docker buildx imagetools create --tag "${ALI}" "${SRC}"
-        docker buildx imagetools inspect "${ALI}"
+        # 用平台 digest 直接创建双仓库 index，避免从 Hub tag 复制 attestation
+        docker buildx imagetools create \
+          -t "${IMAGE}:${TAG}" \
+          -t "${ALI_IMAGE}:${TAG}" \
+          "${refs[@]}"
+        docker buildx imagetools inspect "${ALI_IMAGE}:${TAG}"
