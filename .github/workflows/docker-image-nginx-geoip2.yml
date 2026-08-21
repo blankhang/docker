@@ -341,6 +341,13 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
+      - name: Login to AliDockerHub
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ secrets.ALI_REGISTRY }}
+          username: ${{ secrets.ALI_REGISTRY_USERNAME }}
+          password: ${{ secrets.ALI_REGISTRY_PASSWORD }}
+
       - name: Build module artifact
         uses: docker/build-push-action@v7
         with:
@@ -364,15 +371,6 @@ jobs:
           path: ./dist/ngx_http_geoip2_module.so
           if-no-files-found: error
 
-      - name: Set image tags
-        id: image_tags
-        run: |
-          TAGS="${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
-          if [ "${SET_LATEST}" = "true" ]; then
-            TAGS="${TAGS},${{ env.IMAGE_NAME }}:latest"
-          fi
-          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
-
       - name: Build and push image
         id: docker_build
         uses: docker/build-push-action@v7
@@ -388,10 +386,27 @@ jobs:
           platforms: ${{ env.PLATFORMS }}
           cache-from: type=gha,scope=nginx-geoip2-final-${{ env.TARGET_VERSION }}
           cache-to: type=gha,mode=max,scope=nginx-geoip2-final-${{ env.TARGET_VERSION }}
+          # Push directly to both registries so no OCI referrers are copied across registries.
           provenance: false
           sbom: false
-          push: true
-          tags: ${{ steps.image_tags.outputs.tags }}
+          outputs: |
+            type=image,name=${{ env.IMAGE_NAME }}:${{ env.TARGET_VERSION }},push=true,oci-mediatypes=false
+            type=image,name=${{ secrets.ALI_REGISTRY }}/blankhang/nginx-geoip2:${{ env.TARGET_VERSION }},push=true,oci-mediatypes=false
+
+      - name: Update latest tags and inspect Ali Registry image
+        env:
+          ALI_IMAGE: ${{ secrets.ALI_REGISTRY }}/blankhang/nginx-geoip2
+        run: |
+          set -euo pipefail
+          if [ "${SET_LATEST}" = "true" ]; then
+            docker buildx imagetools create \
+              --tag "${{ env.IMAGE_NAME }}:latest" \
+              "${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
+            docker buildx imagetools create \
+              --tag "${ALI_IMAGE}:latest" \
+              "${ALI_IMAGE}:${TARGET_VERSION}"
+          fi
+          docker buildx imagetools inspect "${ALI_IMAGE}:${TARGET_VERSION}"
 
       - name: Smoke test module load
         run: |
@@ -411,25 +426,6 @@ jobs:
 
       - name: Image digest
         run: echo "${{ steps.docker_build.outputs.digest }}"
-
-      - name: Login to AliDockerHub
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ secrets.ALI_REGISTRY }}
-          username: ${{ secrets.ALI_REGISTRY_USERNAME }}
-          password: ${{ secrets.ALI_REGISTRY_PASSWORD }}
-
-      - name: Copy multi-arch manifest to Ali Registry
-        run: |
-          set -euo pipefail
-          SRC="${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
-          ALI="${{ secrets.ALI_REGISTRY }}/blankhang/nginx-geoip2"
-          tags=(--tag "${ALI}:${TARGET_VERSION}")
-          if [ "${SET_LATEST}" = "true" ]; then
-            tags+=(--tag "${ALI}:latest")
-          fi
-          docker buildx imagetools create "${tags[@]}" "${SRC}"
-          docker buildx imagetools inspect "${ALI}:${TARGET_VERSION}"
 
   publish-release:
     runs-on: ubuntu-latest

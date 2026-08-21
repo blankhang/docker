@@ -351,6 +351,13 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
+      - name: Login to AliDockerHub
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ secrets.ALI_REGISTRY }}
+          username: ${{ secrets.ALI_REGISTRY_USERNAME }}
+          password: ${{ secrets.ALI_REGISTRY_PASSWORD }}
+
       - name: Build module artifact
         if: matrix.arch == 'amd64'
         uses: docker/build-push-action@v7
@@ -391,9 +398,12 @@ jobs:
           platforms: ${{ matrix.platform }}
           cache-from: type=gha,scope=nginx-ip2region-final-${{ env.TARGET_VERSION }}-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=nginx-ip2region-final-${{ env.TARGET_VERSION }}-${{ matrix.arch }}
+          # Push each platform to both registries so no OCI referrers are copied across registries.
           provenance: false
           sbom: false
-          outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          outputs: |
+            type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=false
+            type=image,name=${{ secrets.ALI_REGISTRY }}/blankhang/nginx-ip2region,push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=false
 
       - name: Export digest
         run: |
@@ -446,9 +456,10 @@ jobs:
           username: ${{ secrets.ALI_REGISTRY_USERNAME }}
           password: ${{ secrets.ALI_REGISTRY_PASSWORD }}
 
-      - name: Merge and push DockerHub multi-arch manifest
+      - name: Merge and push multi-arch manifests
         env:
           IMAGE: ${{ env.IMAGE_NAME }}
+          ALI_IMAGE: ${{ secrets.ALI_REGISTRY }}/blankhang/nginx-ip2region
         run: |
           set -euo pipefail
           mapfile -t files < <(find /tmp/digests -type f)
@@ -457,27 +468,22 @@ jobs:
             find /tmp/digests -ls || true
             exit 1
           fi
-          refs=()
+          refs_hub=()
+          refs_ali=()
           for f in "${files[@]}"; do
-            refs+=("${IMAGE}@sha256:$(basename "$f")")
+            digest="$(basename "$f")"
+            refs_hub+=("${IMAGE}@sha256:${digest}")
+            refs_ali+=("${ALI_IMAGE}@sha256:${digest}")
           done
-          tag_args=(-t "${IMAGE}:${TARGET_VERSION}")
+          tags_hub=(-t "${IMAGE}:${TARGET_VERSION}")
+          tags_ali=(-t "${ALI_IMAGE}:${TARGET_VERSION}")
           if [ "${SET_LATEST}" = "true" ]; then
-            tag_args+=(-t "${IMAGE}:latest")
+            tags_hub+=(-t "${IMAGE}:latest")
+            tags_ali+=(-t "${ALI_IMAGE}:latest")
           fi
-          docker buildx imagetools create "${tag_args[@]}" "${refs[@]}"
-
-      - name: Copy multi-arch manifest to Ali Registry
-        run: |
-          set -euo pipefail
-          SRC="${{ env.IMAGE_NAME }}:${TARGET_VERSION}"
-          ALI="${{ secrets.ALI_REGISTRY }}/blankhang/nginx-ip2region"
-          tags=(--tag "${ALI}:${TARGET_VERSION}")
-          if [ "${SET_LATEST}" = "true" ]; then
-            tags+=(--tag "${ALI}:latest")
-          fi
-          docker buildx imagetools create "${tags[@]}" "${SRC}"
-          docker buildx imagetools inspect "${ALI}:${TARGET_VERSION}"
+          docker buildx imagetools create "${tags_hub[@]}" "${refs_hub[@]}"
+          docker buildx imagetools create "${tags_ali[@]}" "${refs_ali[@]}"
+          docker buildx imagetools inspect "${ALI_IMAGE}:${TARGET_VERSION}"
 
       - name: Smoke test module load
         run: |
