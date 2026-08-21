@@ -391,6 +391,8 @@ jobs:
           platforms: ${{ matrix.platform }}
           cache-from: type=gha,scope=nginx-ip2region-final-${{ env.TARGET_VERSION }}-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=nginx-ip2region-final-${{ env.TARGET_VERSION }}-${{ matrix.arch }}
+          provenance: false
+          sbom: false
           outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest

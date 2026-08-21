@@ -388,6 +388,8 @@ jobs:
           platforms: ${{ env.PLATFORMS }}
           cache-from: type=gha,scope=nginx-geoip2-final-${{ env.TARGET_VERSION }}
           cache-to: type=gha,mode=max,scope=nginx-geoip2-final-${{ env.TARGET_VERSION }}
+          provenance: false
+          sbom: false
           push: true
           tags: ${{ steps.image_tags.outputs.tags }}
 
